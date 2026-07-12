@@ -1,9 +1,4 @@
-import type {
-  DecimalString,
-  LengthUnit,
-  PressureUnit,
-  VolumeUnit,
-} from "../contracts.js";
+import type { DecimalString, LengthUnit, PressureUnit, VolumeUnit } from "../contracts.js";
 import { DomainError } from "./errors.js";
 import { exactToString, multiplyByRatio, parseExactDecimal } from "./decimal.js";
 
@@ -57,7 +52,9 @@ export function convertVolume(
   from: VolumeUnit,
   to: VolumeUnit,
 ): DecimalString {
-  return from === to ? value : convert(value, VOLUME_TO_LITERS[from], VOLUME_TO_LITERS[to], "volume");
+  return from === to
+    ? value
+    : convert(value, VOLUME_TO_LITERS[from], VOLUME_TO_LITERS[to], "volume");
 }
 
 export function convertPressure(
@@ -75,5 +72,7 @@ export function convertLength(
   from: LengthUnit,
   to: LengthUnit,
 ): DecimalString {
-  return from === to ? value : convert(value, LENGTH_TO_METERS[from], LENGTH_TO_METERS[to], "length");
+  return from === to
+    ? value
+    : convert(value, LENGTH_TO_METERS[from], LENGTH_TO_METERS[to], "length");
 }

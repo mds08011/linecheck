@@ -1,8 +1,4 @@
-import type {
-  PressureTestAggregate,
-  PressureTestResult,
-  TestSegmentStatus,
-} from "../contracts.js";
+import type { PressureTestAggregate, PressureTestResult, TestSegmentStatus } from "../contracts.js";
 import { DomainError } from "./errors.js";
 
 const SEGMENT_TRANSITIONS: Record<TestSegmentStatus, readonly TestSegmentStatus[]> = {
@@ -22,20 +18,14 @@ const RESULT_TRANSITIONS: Record<PressureTestResult, readonly PressureTestResult
   void: [],
 };
 
-export function assertSegmentTransition(
-  from: TestSegmentStatus,
-  to: TestSegmentStatus,
-): void {
+export function assertSegmentTransition(from: TestSegmentStatus, to: TestSegmentStatus): void {
   if (from === to) return;
   if (!SEGMENT_TRANSITIONS[from].includes(to)) {
     throw new DomainError("invalid_transition", `Test segment cannot move from ${from} to ${to}.`);
   }
 }
 
-export function assertResultTransition(
-  from: PressureTestResult,
-  to: PressureTestResult,
-): void {
+export function assertResultTransition(from: PressureTestResult, to: PressureTestResult): void {
   if (from === to) return;
   if (!RESULT_TRANSITIONS[from].includes(to)) {
     throw new DomainError("invalid_transition", `Pressure test cannot move from ${from} to ${to}.`);

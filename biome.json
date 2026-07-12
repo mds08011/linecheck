@@ -1,13 +1,7 @@
 {
   "$schema": "https://biomejs.dev/schemas/2.3.15/schema.json",
   "files": {
-    "includes": [
-      "**",
-      "!!node_modules/**",
-      "!!pb_data/**",
-      "!!pb_public/assets/**",
-      "!!.tmp/**"
-    ]
+    "includes": ["**", "!!node_modules", "!!pb_data", "!!pb_public/assets", "!!.tmp"]
   },
   "formatter": {
     "enabled": true,
@@ -28,4 +22,3 @@
     }
   }
 }
-

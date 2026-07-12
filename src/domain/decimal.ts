@@ -56,11 +56,7 @@ export function normalizeExact(value: ExactDecimal): ExactDecimal {
 
 function align(a: ExactDecimal, b: ExactDecimal): [bigint, bigint, number] {
   const scale = Math.max(a.scale, b.scale);
-  return [
-    a.coefficient * pow10(scale - a.scale),
-    b.coefficient * pow10(scale - b.scale),
-    scale,
-  ];
+  return [a.coefficient * pow10(scale - a.scale), b.coefficient * pow10(scale - b.scale), scale];
 }
 
 export function addExact(a: ExactDecimal, b: ExactDecimal): ExactDecimal {

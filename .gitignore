@@ -3,6 +3,7 @@ node_modules/
 .pnpm-store/
 .tmp/
 coverage/
+pb_public/
 
 # PocketBase runtime data and downloaded binaries
 pb_data/
@@ -27,4 +28,3 @@ generated/
 Thumbs.db
 .idea/
 .vscode/
-

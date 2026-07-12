@@ -4,7 +4,11 @@ import { DomainError } from "./errors.js";
 export const CANONICALIZATION_VERSION = "linecheck-c14n-v1" as const;
 export const HASH_ALGORITHM = "sha-256" as const;
 
-function serialize(value: unknown, ancestors: WeakSet<object>, inArray: boolean): string | undefined {
+function serialize(
+  value: unknown,
+  ancestors: WeakSet<object>,
+  inArray: boolean,
+): string | undefined {
   if (value === null) return "null";
   if (value === undefined) return inArray ? "null" : undefined;
 
@@ -15,7 +19,10 @@ function serialize(value: unknown, ancestors: WeakSet<object>, inArray: boolean)
       return value ? "true" : "false";
     case "number":
       if (!Number.isFinite(value)) {
-        throw new DomainError("validation_failed", "Canonical data cannot contain non-finite numbers.");
+        throw new DomainError(
+          "validation_failed",
+          "Canonical data cannot contain non-finite numbers.",
+        );
       }
       return Object.is(value, -0) ? "0" : JSON.stringify(value);
     case "object": {
@@ -26,9 +33,7 @@ function serialize(value: unknown, ancestors: WeakSet<object>, inArray: boolean)
       ancestors.add(object);
       try {
         if (Array.isArray(value)) {
-          return `[${value
-            .map((entry) => serialize(entry, ancestors, true) ?? "null")
-            .join(",")}]`;
+          return `[${value.map((entry) => serialize(entry, ancestors, true) ?? "null").join(",")}]`;
         }
 
         const prototype = Object.getPrototypeOf(value);
@@ -70,7 +75,9 @@ export function canonicalize(value: unknown): string {
 }
 
 export async function sha256Bytes(bytes: Uint8Array): Promise<Sha256Hex> {
-  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  const ownedBytes = new Uint8Array(bytes.byteLength);
+  ownedBytes.set(bytes);
+  const digest = await crypto.subtle.digest("SHA-256", ownedBytes);
   return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 

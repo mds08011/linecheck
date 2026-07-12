@@ -54,7 +54,8 @@ export async function verifyAuditChain(events: readonly AuditEvent[]): Promise<b
   let previousHash: string | null = null;
   for (let index = 0; index < ordered.length; index += 1) {
     const event = ordered[index];
-    if (!event || event.sequence !== index + 1 || event.previous_hash !== previousHash) return false;
+    if (!event || event.sequence !== index + 1 || event.previous_hash !== previousHash)
+      return false;
     const { event_hash: eventHash, ...unsigned } = event;
     if ((await sha256Text(canonicalize(unsigned))) !== eventHash) return false;
     previousHash = eventHash;

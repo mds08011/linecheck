@@ -28,10 +28,7 @@ export const PROJECT_SPECIFIED_ALLOWANCE_METHOD = "project_specified_allowance@1
 export function calculateProjectSpecifiedAllowance(
   request: CalculationRequest,
 ): CalculationOutcome {
-  if (
-    request.method_id !== "project_specified_allowance" ||
-    request.method_version !== "1.0.0"
-  ) {
+  if (request.method_id !== "project_specified_allowance" || request.method_version !== "1.0.0") {
     throw new DomainError("validation_failed", "Unsupported calculation method or version.");
   }
   if (request.rounding.mode !== "half_up") {
@@ -47,10 +44,7 @@ export function calculateProjectSpecifiedAllowance(
     );
   }
 
-  const actual = parseNonNegativeExact(
-    request.actual_makeup_water.value,
-    "actual_makeup_water",
-  );
+  const actual = parseNonNegativeExact(request.actual_makeup_water.value, "actual_makeup_water");
   const allowable = parseNonNegativeExact(
     request.allowable_makeup_water.value,
     "allowable_makeup_water",

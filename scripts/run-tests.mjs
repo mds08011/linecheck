@@ -1,4 +1,4 @@
-import { readdirSync } from "node:fs";
+import { existsSync, readdirSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { join } from "node:path";
 
@@ -12,6 +12,11 @@ function collectTests(directory) {
     .sort();
 }
 
+if (!existsSync("tests")) {
+  console.error("No tests directory found. Add tests under tests/unit or tests/integration.");
+  process.exit(1);
+}
+
 const tests = collectTests("tests");
 if (tests.length === 0) {
   console.error("No test files found.");
@@ -23,4 +28,3 @@ const result = spawnSync(process.execPath, ["--test", ...tests], {
 });
 
 process.exit(result.status ?? 1);
-

@@ -216,9 +216,7 @@ export interface CalculationRequest {
 }
 
 export interface CalculationOutcome {
-  contract_version:
-    | "linecheck.calculation-outcome.v1"
-    | "linecheck.calculation-result.v1";
+  contract_version: "linecheck.calculation-outcome.v1" | "linecheck.calculation-result.v1";
   method_id: "project_specified_allowance";
   method_version: "1.0.0";
   normalized_unit: VolumeUnit;
