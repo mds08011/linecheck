@@ -1,7 +1,7 @@
 # LineCheck domain model
 
 - Snapshot date: **2026-07-12**
-- Snapshot commit: **`34693b4` on `main`**
+- Implementation checkpoint: **through `6ce7a22` on `main`**
 
 This document separates the TypeScript model that exists now from intended or proposed
 persistence. Status terms have the same meaning as in
@@ -10,9 +10,9 @@ persistence. Status terms have the same meaning as in
 ## Model status and authority
 
 **CURRENT.** `src/contracts.ts` is the only committed file defining LineCheck record and wire
-shapes. Its exports are TypeScript aliases and interfaces. They disappear at runtime and do not
-create a database schema, validate an API payload, freeze an object, or make a record
-authoritative.
+shapes and their aligned validators. Type aliases still disappear at runtime, but explicit parsers
+now validate the foundational response/request surface and every typed sync mutation. This does
+not create a database schema, freeze an object, or make a record authoritative.
 
 **CURRENT.** There are no persisted LineCheck facts at this commit because there are no
 PocketBase migrations, repositories, or server mutation routes. “Authoritative” below therefore
@@ -27,16 +27,16 @@ sampling, service cutover, restoration, portfolio coordination, or a general wor
 
 | Concept | Status | Current representation | Model consequence |
 | --- | --- | --- | --- |
-| `EntityId` | CURRENT | Alias of `string` in `src/contracts.ts`; `createEntityId` emits a 15-character lowercase alphanumeric PocketBase-compatible value. | IDs are not runtime-validated unless a caller explicitly invokes `isEntityId`. |
+| `EntityId` | CURRENT | Alias of `string`; mutation/implemented response parsers accept nonblank opaque IDs up to 128 non-control characters, while `createEntityId` emits a 15-character lowercase alphanumeric PocketBase-compatible value. | The wire contract does not expose storage semantics, and a separate public-ID strategy remains open. |
 | Public identifier | UNKNOWN | No field separates a stable public/cross-product ID from a local PocketBase-compatible ID. | An ADR or contract decision is needed before cross-product imports rely on `id`. |
 | Human project identifier | CURRENT SHAPE | `Project.project_number`. | Uniqueness and scope are not defined or enforced. |
 | Human segment identifier | CURRENT SHAPE | `TestSegment.segment_number`, scoped by `project_id` in the shape. | Uniqueness is not enforced. |
 | Human test identifier | CURRENT SHAPE | `PressureTest.test_number`, related through `test_segment_id`. | Uniqueness and numbering rules are unknown. |
-| `IsoDateTime` / `IsoDate` | CURRENT | Aliases of `string`. | RFC 3339 offsets and `YYYY-MM-DD` are decided conventions but are not validated. |
-| `DecimalString` | CURRENT | Alias of `string`; domain parsing accepts plain decimal notation with at most 18 integer digits and 12 fractional digits. | Contract fields do not validate automatically. Domain functions validate only values passed through them. |
-| Measurement units | CURRENT | Closed TypeScript unions for pressure (`psi`, `kpa`, `bar`), length (`ft`, `m`), diameter (`in`, `mm`), and volume (`gal_us`, `l`). | Explicit units are modeled; runtime payload validation is absent. |
-| Duration | CURRENT CONTRADICTION | `PressureTest.test_duration_minutes` and `PressureReading.elapsed_minutes` are `DecimalString`. | `AGENTS.md` says wire durations are integer minutes; the current shape permits fractions and arbitrary strings. |
-| Hash | CURRENT SHAPE | `Sha256Hex` is an alias of `string`. | Hash length and hexadecimal form are not runtime-validated. |
+| `IsoDateTime` / `IsoDate` | CURRENT | Aliases of `string`; implemented parsers require RFC 3339 offsets/`Z` and real `YYYY-MM-DD` calendar dates. | Remaining response parsers must apply the same helpers before A-001 closes. |
+| `DecimalString` | CURRENT | Alias of `string`; domain and contract parsing accept plain decimal notation with at most 18 integer digits and 12 fractional digits. | Validation occurs at explicit parser/domain boundaries rather than through the alias itself. |
+| Measurement units | CURRENT | Closed TypeScript unions for pressure (`psi`, `kpa`, `bar`), length (`ft`, `m`), diameter (`in`, `mm`), and volume (`gal_us`, `l`). | Implemented mutation/calculation parsers enforce the enums; remaining response parsers are open. |
+| Duration | CURRENT | `PressureTest.test_duration_minutes` is a nullable positive safe integer and `PressureReading.elapsed_minutes` is a nonnegative safe integer. | Fractional/string minute values are rejected by implemented parsers. |
+| Hash | CURRENT SHAPE | `Sha256Hex` is an alias of `string`; attachment mutation validation requires 64 lowercase hexadecimal characters. | Remaining hash-bearing response/snapshot parsers are open. |
 
 ## Primary record shapes
 
@@ -47,9 +47,9 @@ sampling, service cutover, restoration, portfolio coordination, or a general wor
 - **Authoritative owner:** **DECIDED.** LineCheck owns the project reference needed to execute and
   export its field records; it is not established as the ecosystem master project registry.
 - **Identifiers:** `id`; human-readable `project_number` and `name`.
-- **Mutability and lifecycle:** **UNKNOWN.** The interface has mutable fields and timestamps but no
-  revision, state machine, validation, or update rule. A signed snapshot separately freezes a
-  subset of project identity.
+- **Mutability and lifecycle:** **CURRENT PARTIAL.** The response has `revision`; strict create and
+  partial-update inputs allow only identity/timezone fields. No persistence rule or authorization
+  exists. A signed snapshot separately freezes a subset of project identity.
 - **Relationships and evidence:** Parent context for `TestSegment`; copied into
   `FrozenProjectIdentity`. It has no attachment relationship in the aggregate.
 - **Import/export:** **PROPOSED.** Intended to appear in snapshot/basic exports and future handoff
@@ -63,9 +63,10 @@ sampling, service cutover, restoration, portfolio coordination, or a general wor
   this repository.
 - **Identifiers:** `id`, `project_id`, and human-readable `segment_number`; physical limits are
   free-text `location_from` and `location_to`.
-- **Mutability and lifecycle:** **CURRENT SHAPE.** Has mutable `status`, `revision`, and timestamps.
-  `assertSegmentTransition` implements `draft -> ready -> testing -> passed/failed -> signed`, with
-  permitted transitions to `void`.
+- **Mutability and lifecycle:** **CURRENT SHAPE.** Has response `status`, revision, and timestamps.
+  Create/update inputs reject client status. The legacy helper covers
+  `draft -> ready -> testing -> passed/failed`; A-002 must replace this competing authority with a
+  derived history fold.
 - **Relationships and evidence:** Belongs to a `Project`; parent of `PressureTest`; identity is
   copied into `FrozenTestSegmentIdentity`.
 - **Import/export:** **PROPOSED.** No current import or export.
@@ -80,8 +81,9 @@ sampling, service cutover, restoration, portfolio coordination, or a general wor
   `src/contracts.ts:87`.
 - **Authoritative owner:** **DECIDED.** LineCheck.
 - **Identifiers:** `id`, `test_segment_id`, and human-readable `test_number`.
-- **Mutability and lifecycle:** **CURRENT SHAPE.** `result` is `pending`, `pass`, `fail`, or `void`;
-  `assertResultTransition` permits only `pending -> pass/fail/void`. Start, completion, signing,
+- **Mutability and lifecycle:** **CURRENT SHAPE.** `result` is `pending`, `pass`, or `fail`;
+  `assertResultTransition` permits only `pending -> pass/fail`. Void is a separate disposition.
+  Start, completion, signing,
   and locking are represented by nullable timestamps, not implemented transitions. The object is
   not `readonly`.
 - **Relationships and evidence:** Parent of readings, attachments, signatures, void records,
@@ -92,9 +94,8 @@ sampling, service cutover, restoration, portfolio coordination, or a general wor
 - **Authority gap:** **UNKNOWN.** Both `PressureTest.result` and
   `PressureTest.calculation_result_json.passed` can encode the outcome. No function guarantees
   agreement, although `DomainErrorCode` includes an unused `calculation_mismatch` value.
-- **Disposition gap:** **CURRENT CONTRADICTION.** The type named `PressureTestResult` includes
-  `void`, while [`mvp-scope.md`](mvp-scope.md) says void is a formal disposition rather than a
-  calculation result.
+- **Disposition:** **DECIDED AND MODELED.** `VoidRecord` carries the separate correction
+  disposition; its persistence and replacement workflow remain unimplemented.
 
 ### `PressureReading`
 
@@ -183,8 +184,8 @@ sampling, service cutover, restoration, portfolio coordination, or a general wor
 - **Authoritative owner:** **UNKNOWN.** The shape names template/version/source, but no project
   approval actor, registry, persistence rule, signature, or import provenance exists.
 - **Identifiers:** `id`, `version`, and `name`; uniqueness and version immutability are not defined.
-- **Mutability and lifecycle:** **UNKNOWN.** `status` permits `fixture_only` or `project_approved`.
-  No committed fixture instance or version transition exists.
+- **Mutability and lifecycle:** **DECIDED MVP SHAPE.** `status` permits only `fixture_only`. No
+  committed fixture instance, authoritative registry, or version transition exists.
 - **Relationships and evidence:** Produces a `CalculationRequest`; contains `EvidenceRequirement`
   and `SignatureRequirement` arrays.
 - **Import/export:** **PROPOSED.** Future project-template import/export is a roadmap item.
@@ -193,10 +194,10 @@ sampling, service cutover, restoration, portfolio coordination, or a general wor
 
 | Concept | Status | Purpose and current behavior | Mutability, evidence, and export relevance |
 | --- | --- | --- | --- |
-| `RoundingRule` | CURRENT SHAPE | Decimal places plus the sole mode `half_up`. `roundExact` accepts 0-12 places. | Copied into calculation request/result provenance; no runtime contract validator. |
+| `RoundingRule` | CURRENT SHAPE | Decimal places plus the sole mode `half_up`. `roundExact` accepts 0-12 places. | Calculation-request validation enforces the current fields; full boundary vectors remain A-005. |
 | `ComparisonRule` | CURRENT SHAPE | Sole operator `less_than_or_equal` plus decimal-string tolerance. | Used by the calculator; tolerance is required non-negative by the function. |
 | `Measurement` | CURRENT SHAPE | Decimal-string value plus volume unit. | Calculation-only shape; no standalone identity or persistence. |
-| `CalculationRequest` | CURRENT SHAPE | Versioned request for `project_specified_allowance@1.0.0`, including template IDs, actual/supplied allowable values, rounding, and comparison. | Intended frozen input evidence; no server route receives or validates it. |
+| `CalculationRequest` | CURRENT VALIDATED SHAPE | Versioned fixture-only request including method/source/time provenance, template IDs, actual/supplied allowable values, rounding, and comparison. | Strict parser rejects unknown input fields; no server route receives, recomputes, or persists it. |
 | `CalculationOutcome` | CURRENT DERIVED VALUE | Exact unrounded values, display-rounded values, difference, tolerance, unit, and `passed`. | Returned by `calculateProjectSpecifiedAllowance`; not stored by current code. |
 | `CalculationResult` | CURRENT SHAPE AND DERIVED VALUE | Extends outcome with template provenance, status, source reference, timestamp, and warnings. | `recordProjectSpecifiedAllowanceCalculation` creates it; no persistence/export. |
 | `EvidenceRequirement` | CURRENT SHAPE | Attachment type and minimum count. | No requirement evaluator exists. |
@@ -207,9 +208,9 @@ actual value against supplied allowable plus tolerance. It validates method/vers
 rounding/comparison, same-unit inputs, and non-negative numeric inputs. It does not derive an
 allowance from pipe material, diameter, length, pressure, or any owner standard.
 
-**CURRENT GAP.** `recordProjectSpecifiedAllowanceCalculation` accepts a template whose status is
-`project_approved` and then omits the fixture warning. No current authority proves that status,
-so callers must not treat this path as implemented project approval.
+**CURRENT GAP.** The wrapper and request/result contracts are fixture-only and always retain the
+fixture warning, but no authoritative route proves that the caller used a stored project
+requirement or recomputes the result before persistence.
 
 ## Frozen evidence and signing concepts
 
@@ -230,18 +231,18 @@ null for undefined array entries, finite JSON numbers, and no whitespace. `hashC
 the UTF-8 bytes with SHA-256.
 
 **CURRENT GAP.** Generic canonicalization does not select the signed field set, validate a
-`SignedTestSnapshot`, sort readings/attachments, validate RFC 3339 timestamps, restrict
-engineering values to decimal strings, or provide a golden byte/hash vector. The current
-TypeScript build also fails at the `crypto.subtle.digest` typing in `sha256Bytes`.
+`SignedTestSnapshot`, sort readings/attachments, validate the full snapshot, or provide a signed
+golden byte/hash vector. The Web Crypto input now uses an owned `ArrayBuffer`-backed copy, and the
+known SHA-256 `abc` vector passes.
 
 ## Synchronization and API concepts
 
 | Concept | Status | Purpose and identifiers | Mutability/lifecycle, relationships, evidence, and export |
 | --- | --- | --- | --- |
-| `SyncEntityType` | CURRENT SHAPE | Enumerates project, segment, test, reading, attachment, and signature targets. | Does not include snapshots, void records, audit events, or templates. No runtime consumer. |
-| `SyncOperation` | CURRENT SHAPE | Versioned mutation envelope with `mutation_id`, client/device IDs, target entity/id, create/update, base revision, time, and untyped payload. | No validator, outbox, endpoint, idempotency record, or replay exists. `payload` is `Record<string, unknown>`. |
+| `SyncEntityType` | CURRENT SHAPE | Enumerates project, segment, test, reading, and attachment targets. | Signature/snapshot/void/audit mutations require authoritative routes and are deliberately excluded. |
+| `SyncOperation` | CURRENT VALIDATED SHAPE | Discriminated mutation envelope with entity-specific strict payloads, `mutation_id`, client/device IDs, target, revision, and time. | Runtime parser exists; no outbox, endpoint, receipt, authorization, or replay exists. |
 | `SyncResult` | CURRENT SHAPE | Versioned per-mutation status, server revision, conflict fields, and optional error. | No server produces it and no client consumes it. |
-| `ApiError` | CURRENT SHAPE | Safe-display-oriented code/message/field map/request ID. | No HTTP boundary emits it; safe logging/display is not tested. |
+| `ApiError` | CURRENT VALIDATED SHAPE | `linecheck.api-error.v1` code/message/field map/request ID; unknown codes are tolerated and additive fields are stripped. | No HTTP boundary emits it; redaction at route/log boundaries remains unimplemented. |
 
 **PROPOSED.** Durable drafts, mutation replay, append merges, explicit unsafe conflicts, and server
 idempotency are part of the MVP/post-MVP direction. The storage engine and wire route are unknown.
@@ -310,15 +311,13 @@ before persistence schemas or public APIs freeze them.
 
 | Topic | Current evidence | Needed decision |
 | --- | --- | --- |
-| Segment status | Stored `TestSegment.status` plus transition graph; scope doc says derived. | Remove it, define it as derived, or explicitly document a cache/reconciliation rule. |
+| Segment status | Output `TestSegment.status` plus a legacy transition graph; mutation inputs reject client status. | Define the history fold in A-002 and remove the competing transition authority. |
 | Result authority | Stored `PressureTest.result` and derived `CalculationResult.passed`. | Select the authoritative fact and define server recomputation/mismatch handling. |
-| Void semantics | `void` is in `PressureTestResult` and also has `VoidRecord`. | Separate calculation outcome from disposition, or document why both representations are required. |
-| Duration representation | Decimal-string minutes versus decided integer minutes. | Change the future versioned contract or validate whole-number strings with a compatibility plan. |
 | Public IDs | Single opaque/string/PocketBase-compatible `id`. | Decide whether public cross-product IDs differ from local database IDs before integrations. |
 | Canonicalization ownership | Implemented under `src/domain`; repository map assigns evidence work to `src/evidence`. | Confirm final module boundary without changing canonical bytes accidentally. |
 | Canonical field set/order | Generic sorted-key serializer plus compile-time snapshot interface. | Freeze runtime schema, collection ordering, normalization, and golden vectors. |
-| Runtime validation | Contracts contain types only. | Select validator approach and keep it colocated/aligned with v1 DTO definitions. |
-| Project approval | Template status can claim `project_approved`; no authority exists. | Define who/what authorizes a method and how immutable versions are proven. |
+| Runtime validation coverage | Foundational response and all typed mutation validators are colocated in `src/contracts.ts`; several response DTOs remain compile-time only. | Finish the remaining A-001 parsers/vectors before persistence or UI freezes v1. |
+| Future project approval | The MVP types now exclude `project_approved`; no later authority mechanism exists. | Define a distinct future method/version and authorization provenance rather than upgrading the fixture silently. |
 | Immutability | Mutable TypeScript objects plus opt-in guard. | Enforce at authoritative PocketBase route/rule/transaction boundaries. |
 | PDF/export vocabulary | Enums mention generated PDF/export. | Keep vocabulary from being mistaken for implementation; define artifacts only with tested generators. |
 

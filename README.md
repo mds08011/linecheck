@@ -2,7 +2,7 @@
 
 > **DECIDED product direction:** LineCheck is an open-source, offline-tolerant field application for documenting pipeline pressure tests, witness attestations, supporting evidence, and acceptance records on water and wastewater construction projects.
 
-> **CURRENT repository reality (2026-07-12, `34693b4`):** LineCheck is a pre-alpha TypeScript contract/domain scaffold. It is not yet a runnable field application and must not be used as the sole acceptance record on a live project.
+> **CURRENT repository reality (2026-07-12, through `6ce7a22`):** LineCheck is a pre-alpha TypeScript contract/domain scaffold with a green quality gate, Node-native unit tests, typed mutation inputs, and foundational v1 runtime validation. It is not yet a runnable field application and must not be used as the sole acceptance record on a live project.
 
 Documentation uses five evidence labels: **CURRENT** is confirmed in the repository, **DECIDED** is an intentional direction, **PROPOSED** needs review, **DEPRECATED** is retained behavior intended for replacement, and **UNKNOWN** lacks enough evidence. See the authoritative [documentation index](docs/documentation-index.md).
 
@@ -10,14 +10,14 @@ Documentation uses five evidence labels: **CURRENT** is confirmed in the reposit
 
 **CURRENT:** The repository contains:
 
-- v1-named compile-time DTO interfaces for projects, test segments, pressure tests, readings, attachment metadata, attestations, audit events, snapshots, voids, and sync operations in [`src/contracts.ts`](src/contracts.ts);
+- v1 DTO interfaces, strict create/update mutation inputs, discriminated sync operations, foundational runtime parsers, and field-specific `ContractValidationError` details in [`src/contracts.ts`](src/contracts.ts);
 - exact decimal arithmetic, explicit unit conversion, and a supplied project-allowance comparison in [`src/domain/`](src/domain/);
 - generic canonicalization/SHA-256 helpers, in-memory audit-chain helpers, lifecycle preconditions, and PocketBase-compatible local ID generation;
-- a pinned pnpm/TypeScript/Biome toolchain and product/planning documentation.
+- a pinned pnpm/TypeScript/Biome toolchain, 15 Node-native unit tests, and product/planning documentation.
 
-**CURRENT:** There is no `src/app/`, `src/evidence/`, `pb_migrations/`, `pb_hooks/`, `pb_public/`, `tests/`, API, database, authentication, upload path, offline store, report/export implementation, CI workflow, or deployment package. The [current-state audit](docs/current-state.md) is the evidence-backed inventory.
+**CURRENT:** There is no `src/app/`, `src/evidence/`, `pb_migrations/`, `pb_hooks/`, source-controlled `pb_public/`, API, database, authentication, upload path, offline store, report/export implementation, CI workflow, or deployment package. `tests/unit/` exists; integration and end-to-end harnesses do not. The [current-state audit](docs/current-state.md) is the evidence-backed inventory.
 
-**CURRENT limitation:** At the audited commit, TypeScript checking fails in `src/domain/canonicalize.ts`, the formatting check fails, and the test launcher fails because no `tests/` directory exists. These are recorded facts, not documentation-session fixes.
+**CURRENT verification:** `pnpm run check`, `pnpm test`, and `pnpm build` pass. The current build is still only a temporary TypeScript compilation bridge into ignored `pb_public/assets`; it does not assemble a PWA or satisfy the reproducible application-build roadmap item.
 
 ## Product purpose and users
 
@@ -39,7 +39,7 @@ Documentation uses five evidence labels: **CURRENT** is confirmed in the reposit
 6. Build and hash a canonical signed snapshot in one authoritative lock action.
 7. Produce print-ready HTML and versioned basic data exports.
 
-**CURRENT calculation primitive:** `calculateProjectSpecifiedAllowance()` compares an actual makeup-water value with an allowance supplied to it, using exact decimal arithmetic and an explicit tolerance. It does not derive an allowance or implement AWWA/owner criteria. There is no authoritative project-template store or runtime validator, so the primitive is not an approved field method.
+**CURRENT calculation primitive:** `calculateProjectSpecifiedAllowance()` compares an actual makeup-water value with an allowance supplied to it, using exact decimal arithmetic and an explicit tolerance. The request validator freezes fixture-only method provenance, but there is no authoritative project-template store or server recomputation boundary. It does not derive an allowance or implement AWWA/owner criteria and is not an approved field method.
 
 The detailed release target is [`docs/mvp-scope.md`](docs/mvp-scope.md); open implementation packages are in [`docs/backlog.md`](docs/backlog.md).
 
@@ -47,10 +47,10 @@ The detailed release target is [`docs/mvp-scope.md`](docs/mvp-scope.md); open im
 
 | Topic | Status | Repository evidence or direction |
 |---|---|---|
-| Domain contracts and exact arithmetic | CURRENT | TypeScript types/helpers exist; runtime validation and tests do not |
+| Domain contracts and exact arithmetic | CURRENT | Typed mutation allowlists, foundational response/request parsers, exact helpers, and unit tests exist; remaining response DTO validators are open |
 | Framework-free mobile TypeScript client | DECIDED | No client source or browser entry point exists |
 | One PocketBase/SQLite service | DECIDED | No migrations, hooks, collections, or setup script exist |
-| Offline drafts and synchronization | PROPOSED | DTO vocabulary and local ID helper only |
+| Offline drafts and synchronization | PROPOSED | Validated sync mutation vocabulary and local ID helper exist; no draft store, outbox, route, or receipt persistence |
 | Signature, canonical snapshot, and lock | DECIDED | Types/generic hash helpers only; no allowlisted builder or transaction |
 | Print-ready HTML/basic exports | DECIDED | No renderer or export exists |
 | Production PDF | PROPOSED | Renderer and byte-stability requirements are unresolved |
@@ -71,7 +71,7 @@ pnpm run typecheck
 node scripts/run-tests.mjs
 ```
 
-**CURRENT limitation:** This command set is not green at `34693b4`; consult [`docs/current-state.md`](docs/current-state.md) for exact results. `pnpm build` currently runs only `tsc` with output directed to `pb_public/assets`; it does not assemble a PWA. No local server/start command exists.
+**CURRENT limitation:** The command set is green, but `pnpm build` currently runs only `tsc` with ignored output directed to `pb_public/assets`; it does not assemble a PWA. No local server/start command exists. Consult [`docs/current-state.md`](docs/current-state.md) for the exact verification boundary.
 
 ## Deployment and self-hosting
 

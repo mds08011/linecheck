@@ -1,6 +1,8 @@
 # Architecture decision records
 
-> Classification: **CURRENT** index of decisions recorded for LineCheck at commit `34693b4`; individual ADRs state whether their decision is **DECIDED** or **PROPOSED**. An accepted decision is not evidence that implementation exists.
+> Classification: **CURRENT** index of decisions maintained through the `6ce7a22` implementation
+> checkpoint; individual ADRs state whether their decision is **DECIDED** or **PROPOSED**. An
+> accepted decision is not evidence that implementation exists.
 
 ADRs record one decision and its implementation status. They do not replace the descriptive repository audit in [`../current-state.md`](../current-state.md) or the live decision matrix in [`../architecture-status.md`](../architecture-status.md).
 

@@ -1,13 +1,13 @@
 # LineCheck current state
 
 - Snapshot date: **2026-07-12**
-- Snapshot commit: **`34693b4` on `main`**
+- Implementation checkpoint: **through `6ce7a22` on `main`**
 
-This document is descriptive. It records the committed LineCheck repository at the snapshot
-above; documentation-only work in the current worktree is not treated as shipped behavior.
+This document is descriptive. It records the committed LineCheck repository through the
+implementation checkpoint above; later documentation-only edits do not create shipped behavior.
 Use the following labels throughout:
 
-- **CURRENT** — directly confirmed in the repository at the snapshot commit.
+- **CURRENT** — directly confirmed in the repository at the implementation checkpoint.
 - **DECIDED** — a repository instruction or product boundary intentionally selects this
   direction, but implementation may be incomplete or absent.
 - **PROPOSED** — roadmap, backlog, or candidate design that still requires implementation or
@@ -22,10 +22,10 @@ future pipeline pressure-test field application. The executable surface consists
 schema, server route, persisted record, authentication boundary, offline store, report, export,
 or end-to-end field workflow in this commit.
 
-**CURRENT.** Commit `e4ff4e0`, the immediate predecessor, contained only `LICENSE`. Commit
-`34693b4` added the current documentation, package/tooling scaffold, contract interfaces, and
-domain utilities. Although its subject is `Initial MVP`, it does not satisfy the MVP release gate
-defined in [`mvp-scope.md`](mvp-scope.md).
+**CURRENT.** Commit `34693b4` introduced the original package/tooling scaffold, compile-time
+contracts, and domain utilities. Commits `c832971` and `6ce7a22` restored a passing verification
+baseline and added typed mutation allowlists plus foundational runtime contract validation. The
+repository still does not satisfy the MVP release gate in [`mvp-scope.md`](mvp-scope.md).
 
 **DECIDED.** The intended first product slice is project -> segment -> pressure readings and
 evidence -> clearly labelled project-specified allowance comparison -> witness attestation ->
@@ -54,14 +54,14 @@ or PocketBase command. The available developer commands are `build`, `typecheck`
 `format`, `format:check`, `test`, and `check`.
 
 **CURRENT.** `pnpm build` invokes `tsc -p tsconfig.json`. The compiler is configured to emit all
-`src/**/*.ts` modules into `pb_public/assets`; it does not assemble an HTML application or PWA.
-`pb_public/` is absent at the snapshot commit.
+`src/**/*.ts` modules into ignored `pb_public/assets`; it does not assemble an HTML application or
+PWA. A successful local build creates that generated directory, but it is not source-controlled.
 
 The current source modules are:
 
 | Module | Status | Current behavior |
 | --- | --- | --- |
-| `src/contracts.ts` | CURRENT | Compile-time aliases and interfaces for projects, segments, tests, readings, evidence, signatures, calculations, snapshots, void records, sync messages, API errors, and an aggregate. It contains no runtime validators. |
+| `src/contracts.ts` | CURRENT | Sole v1 contract source. It defines response DTOs, strict entity create/update inputs, discriminated `SyncOperation` payloads, `ContractValidationError`, shared scalar checks, and foundational parsers for projects, pressure tests, calculations, API errors, and every permitted sync mutation. Remaining response DTO parsers are not yet implemented. |
 | `src/domain/decimal.ts` | CURRENT | Parses bounded plain decimal strings, performs exact `bigint` arithmetic and comparison, and applies half-up rounding. |
 | `src/domain/units.ts` | CURRENT | Converts volume, pressure, and length with fixed rational ratios and a declared conversion-policy version. |
 | `src/domain/calculation.ts` | CURRENT | Compares caller-supplied actual makeup water with a caller-supplied project allowance and tolerance; records method/template provenance; sums makeup-water increments. It does not derive an engineering allowance. |
@@ -93,8 +93,8 @@ constraints, authorization rules, and migration order remain unimplemented.
 a pressure reading, upload evidence, capture a witness signature, lock or void a test, open a
 report, or export data.
 
-**CURRENT.** A developer can call the domain functions directly after resolving the current build
-failure. The most complete pure sequence accepts a `PressureTestTemplate` supplied by the caller,
+**CURRENT.** A developer can run the passing unit suite or call the domain functions directly.
+The most complete pure sequence accepts a `PressureTestTemplate` supplied by the caller,
 records a project-specified allowance calculation through
 `recordProjectSpecifiedAllowanceCalculation`, and receives a derived `CalculationResult`. No
 committed fixture constructs that template, and no authoritative server recomputes or stores the
@@ -109,9 +109,12 @@ the pure helpers identified above.
 **CURRENT.** There is no IndexedDB/local-storage layer, draft repository, outbox, attachment
 queue, service worker, retry loop, synchronization endpoint, or conflict interface.
 
-**CURRENT.** `SyncOperation` and `SyncResult` are compile-time interfaces in `src/contracts.ts`.
-`createEntityId` can generate a PocketBase-compatible ID. Neither fact implements offline replay,
-mutation idempotency, or conflict handling.
+**CURRENT.** `SyncOperation` is a discriminated union whose runtime parser validates every
+permitted project, segment, pressure-test, reading, and attachment create/update payload.
+Signatures are excluded from ordinary sync mutations, create operations require a null base
+revision, updates require a nonnegative revision, unknown mutation fields reject, and
+`createEntityId` can generate a PocketBase-compatible ID. There is still no outbox, route,
+idempotency receipt, replay, or conflict handler.
 
 **DECIDED.** Local unlocked drafts, visible unsynced state, client-generated mutation IDs,
 append-oriented child records, and no silent overwrite of signed/locked evidence are selected
@@ -170,49 +173,49 @@ production support policy have not been implemented or validated.
 
 ## Tests and repository checks
 
-**CURRENT.** `tests/` is absent. `scripts/run-tests.mjs` recursively scans that directory for
-`*.test.mjs`, so it cannot currently run a test. There are no unit, integration, end-to-end,
-browser, migration, authorization, snapshot-vector, report, or documentation-link tests.
+**CURRENT.** `tests/unit/` contains `contracts.test.mjs` and `domain-foundation.test.mjs`.
+`scripts/run-tests.mjs` discovers `*.test.mjs` deterministically and reports a clear prerequisite
+error if the test tree is absent. There are no integration, end-to-end, browser, migration,
+authorization, signed-snapshot-vector, or report tests.
 
-The following read-only checks were run against the snapshot source on 2026-07-12:
+The following checks were run against implementation checkpoint `6ce7a22` on 2026-07-12:
 
 | Check | Result |
 | --- | --- |
-| TypeScript `tsc -p tsconfig.json --noEmit` | **FAIL.** `src/domain/canonicalize.ts:73` passes `Uint8Array<ArrayBufferLike>` where the DOM `crypto.subtle.digest` typing requires `BufferSource` backed by `ArrayBuffer` (`TS2345`). |
-| `biome lint .` | **PASS WITH WARNINGS.** Four `lint/suspicious/useBiomeIgnoreFolder` warnings identify trailing `/**` folder-ignore patterns in `biome.json`. |
-| `biome format .` | **FAIL.** Biome reports formatting differences in ten files. |
-| Direct `node scripts/run-tests.mjs` | **FAIL.** `ENOENT` while scanning the absent `tests/` directory. |
-| Full `pnpm run check` | **NOT A PASSING GATE.** Its first formatting step is known to fail; later typecheck and test steps also have the failures above. |
-| `pnpm build` | **NOT RUN DURING THE READ-ONLY AUDIT.** It emits generated files, and the same TypeScript error prevents a successful build. |
+| `pnpm run format:check` | **PASS.** Biome reports no formatting changes across the current TypeScript, JavaScript, and configuration surface. |
+| `pnpm run lint` | **PASS.** Biome reports no warnings or errors. |
+| `pnpm run typecheck` | **PASS.** Strict TypeScript checking completes without emit. |
+| `pnpm test` | **PASS.** The TypeScript bridge builds and 15 Node-native unit tests pass. |
+| `pnpm run check` | **PASS.** Format, lint, typecheck, build, and unit-test stages complete. |
+| `pnpm build` | **PASS WITH A LIMITED ARTIFACT CONTRACT.** It compiles `src/**/*.ts` into ignored `pb_public/assets`; it does not create, clean, or verify a deployable PWA. |
 
-**CURRENT.** The documented claim that only test-exercised behavior is implemented yields no
-test-verified behavior at this commit. The pure helpers are present source, but they are unverified
-by checked-in tests.
+**CURRENT.** Fifteen tests verify the new mutation validators plus representative exact-decimal,
+unit-conversion, fixture-comparison, makeup-water, canonicalization/SHA-256, and illegal-transition
+behavior. They do not prove persistence, authorization, signing, reporting, offline behavior, or
+a runnable field workflow.
 
 ## Known limitations and current contradictions
 
-- **CURRENT.** Runtime contract validation is absent even though `AGENTS.md` describes aligned
-  validators in `src/contracts.ts`. Aliases such as `IsoDateTime`, `IsoDate`, `DecimalString`, and
-  `Sha256Hex` are plain strings at runtime.
+- **CURRENT.** Foundational runtime validation exists in `src/contracts.ts`: project and
+  pressure-test responses, calculation request/result, `ApiError`, and every typed sync mutation
+  are parsed with stable field errors. Validators for the remaining response DTOs, including
+  segment, reading, attachment, signature, audit, sync result, void, aggregate, and signed
+  snapshot envelopes, remain open; A-001 is therefore in progress, not complete.
 - **CURRENT.** `TestSegment.status` is a stored field and `assertSegmentTransition` mutates the
   conceptual state machine, while [`mvp-scope.md`](mvp-scope.md) says segment display status is
   derived from tests.
 - **CURRENT.** `PressureTest.result` and `CalculationResult.passed` are separate values with no
   implemented consistency check or authoritative persistence boundary.
-- **CURRENT.** `test_duration_minutes` and `elapsed_minutes` are decimal strings; `AGENTS.md` says
-  durations on the wire are integer minutes.
+- **CURRENT.** `test_duration_minutes` and `elapsed_minutes` now use validated nonnegative safe
+  integers; configured test duration, when present, must be at least one minute.
 - **CURRENT.** The snapshot shape exists only as an interface. Generic `canonicalize` does not
-  enforce the signed snapshot field allowlist and has no golden byte/hash vectors.
+  enforce the signed snapshot field allowlist and has no signed-snapshot golden byte/hash vector.
 - **CURRENT.** `assertAggregateMutable` is a callable guard, not universal enforcement. No adapter
   or database rule invokes it for every mutation.
-- **CURRENT.** `PressureTestTemplate.status` can be `project_approved`, and the calculation helper
-  suppresses the fixture warning for that value, but no approval authority or approved method
-  registry exists.
+- **CURRENT.** `PressureTestTemplate`, `CalculationRequest`, and `CalculationResult` accept only
+  `fixture_only`; a future project-authorized method requires a distinct reviewed implementation.
 - **CURRENT.** `EntityId` is a plain string and the only generator deliberately produces a local
   PocketBase-compatible ID. A separate stable cross-product public identifier is not defined.
-- **CURRENT.** README architecture bullets describe absent `src/app/`, `src/evidence/`,
-  `pb_migrations/`, `pb_hooks/`, offline behavior, and report/export behavior as though they were
-  current components.
 
 ## Neighboring overlap and repository limits
 
@@ -234,12 +237,13 @@ snapshot.
 
 ## Stabilization needed before major refactoring
 
-1. **DECIDED prerequisite:** make formatting, typecheck, build, and at least narrow invariant tests
-   pass without generated or operator data in source control.
-2. **UNKNOWN decision:** resolve stored versus derived segment/test status and define the sole
+1. **CURRENT foundation:** formatting, lint, typecheck, the temporary TypeScript build, and narrow
+   unit tests pass without generated or operator data in source control. A clean reproducible PWA
+   build and integration/e2e harnesses remain separate packages.
+2. **DECIDED next contract step:** finish runtime parsers/vectors for every remaining v1 response
+   DTO without creating a parallel schema file.
+3. **DECIDED next domain step:** resolve stored versus derived segment/test status and define the sole
    authoritative pass/fail representation.
-3. **DECIDED prerequisite:** add runtime validators beside the versioned contracts before UI,
-   hooks, or integrations create shadow schemas.
 4. **UNKNOWN decision:** freeze canonical snapshot fields, numeric/string rules, timestamps, and
    golden byte/hash vectors before any signature or persistence work.
 5. **PROPOSED implementation:** introduce reproducible PocketBase migrations and safe default

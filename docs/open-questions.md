@@ -22,39 +22,40 @@ until accepted in an ADR or controlling product document.
 - **Latest safe decision point:** Before the first LineCheck migration or
   published external API fixture.
 
-## 2. What is the authoritative lifecycle shape for status, void, and duration?
+## 2. How exactly is derived segment status folded from test history?
 
-- **Status:** **UNKNOWN** because current types and decided prose conflict.
+- **Status:** **DECIDED semantics; A-002 derivation remains open.**
 - **Why it matters:** These fields affect every validator, migration, sync
   operation, snapshot, report, and consumer.
-- **Available options:** Derive segment status or store it; make void a separate
-  disposition or a test result; represent duration as integer minutes or a
-  decimal string.
-- **Current evidence:** `TestSegment.status` and transition helpers are CURRENT;
-  MVP/backlog prose says status is derived. `PressureTestResult` includes
-  `void`, while decided rules separate void from calculation result. Duration
-  DTOs use `DecimalString`, while repository rules require integer minutes.
-- **Recommendation:** Derive segment status as an output-only view, keep
-  `pending/pass/fail` as calculation result, model void separately, and use
-  non-negative integer minutes.
+- **Available options:** Latest governing non-void result; explicit precedence
+  across pending/pass/fail records; or a richer derived response that separates
+  activity from acceptance standing.
+- **Current evidence:** At `6ce7a22`, mutation inputs reject segment `status`,
+  `PressureTestResult` is `pending/pass/fail`, void is separate, and duration is
+  integer minutes. `TestSegment.status` remains an output field and the legacy
+  transition helper still exists; no history fold is implemented.
+- **Recommendation:** A-002 should derive the output from authoritative tests
+  and replacement facts, preserving signed failures and avoiding a second
+  mutable status authority.
 - **What must be validated:** Transition/fold matrix, replacement chains,
   signed failed tests, backward compatibility, and every DTO consumer.
 - **Decision owner:** Workstream A, mandatory review by B/C/D and product owner.
-- **Latest safe decision point:** Before v1 runtime validators, migrations, or
-  canonical golden vectors.
+- **Latest safe decision point:** Before the first PocketBase migration or
+  segment response validator is treated as complete.
 
-## 3. How is fixture-only calculation authority enforced?
+## 3. How will a future project-authorized method differ from the fixture?
 
-- **Status:** **UNKNOWN** implementation against a **DECIDED** MVP rule.
+- **Status:** **DECIDED for MVP; future method authority remains UNKNOWN.**
 - **Why it matters:** A `project_approved` result could be mistaken for a real
   project-authorized method that LineCheck does not implement.
-- **Available options:** Reject every non-fixture template in MVP; remove the
-  enum value until later; or permit it through a separate authorization store.
-- **Current evidence:** Documentation permits only `fixture_only`, but
-  `recordProjectSpecifiedAllowanceCalculation()` accepts `project_approved`
-  and removes the warning.
-- **Recommendation:** Reject non-fixture status at the authoritative domain
-  boundary now; design project-authorized methods as a later versioned feature.
+- **Available options:** A separately versioned project configuration approved
+  by a named actor; a signed imported requirement; or a later reviewed method
+  registry. Reusing the fixture identifier is not an option.
+- **Current evidence:** Template, request, result, and runtime request validation
+  now accept only `fixture_only`, retain source/time provenance, and cannot
+  represent `project_approved`.
+- **Recommendation:** Complete A-005 as fixture-only. Design project-authorized
+  methods later with a distinct identifier/version and explicit authority.
 - **What must be validated:** Golden rejection tests, UI/report disclaimer,
   method upgrade/history behavior, and source-reference requirements.
 - **Decision owner:** Workstream A and project-domain authority.

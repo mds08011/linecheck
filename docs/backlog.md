@@ -6,6 +6,19 @@ This backlog decomposes the pressure-test MVP into reviewable packages that can 
 
 The highest-priority dependency chain is **A-001 → A-002 → A-003 → A-004 → C-001**. After A-001 fixes the shared vocabulary, A-005, B-001, C-001, and D-001 can proceed in parallel without sharing implementation files.
 
+## Implementation checkpoint — 2026-07-12
+
+- **COMPLETE: D-000 verification baseline.** Formatting/linting, strict typecheck, the temporary
+  TypeScript build bridge, and 15 Node-native unit tests pass at `6ce7a22`. This does not complete
+  the PWA build, PocketBase harness, CI, integration tests, or end-to-end tests.
+- **IN PROGRESS: A-001 contract foundation.** Resolved semantics include `pending/pass/fail`,
+  separate void disposition, integer minutes, fixture-only calculation provenance, a versioned
+  `ApiError`, strict entity create/update inputs, and runtime validation for every permitted
+  `SyncOperation` payload. Project, pressure-test, calculation, and API-error response parsers are
+  tested. Remaining response DTO parsers and exhaustive vectors keep A-001 open.
+- **NEXT:** finish A-001 response coverage, then implement A-002 lifecycle/derived segment status.
+  A-003 migrations must not begin until both packages close.
+
 ## Versioned contract baseline
 
 `src/contracts.ts` is the single source of truth for public TypeScript contract v1. The current file uses embedded identifiers such as `linecheck.calculation-request.v1`, `linecheck.signed-pressure-test.v1`, and `linecheck.sync-operation.v1`; future HTTP routes should use `/api/linecheck/v1/...`. Do not create shadow DTOs in UI, hooks, tests, exports, or the paid repository.
@@ -17,7 +30,7 @@ All wire fields use `snake_case`. IDs are opaque collision-resistant strings and
 | `Project` | Opaque ID; nonblank name/number/owner/contractor; valid IANA timezone; created/updated RFC 3339. | Mutable while authorized; revision/idempotency enforced by mutation input. | A persistence → B UI, C snapshot/export |
 | `TestSegment` | Project ID; unique project-scoped segment number; physical limits; plan/spec; material; positive diameter/length decimal strings and explicit units; revision. | Setup fields mutable before dependent test lock; response status is derived from tests, never accepted as client truth. | A persistence/domain → B UI, C snapshot/export |
 | `PressureTest` | Segment ID; project-scoped test number; date/type; pressure/volume units; nullable pre-completion measurements/times/calculation; revision; authoritative result `pending/pass/fail`. | Domain controls transitions. Signing locks test and children. Void is a separate disposition/record; failed signed tests remain valid evidence. | A domain/persistence → B flow, C integrity/report |
-| `PressureReading` | Test ID; recorded time; nonnegative elapsed/pressure/makeup-water decimal strings; explicit units; note/time. | Append-only after acceptance; never edited/deleted after test lock; duplicate mutation is idempotent. | B capture/A route → A domain, C snapshot/report |
+| `PressureReading` | Test ID; recorded time; nonnegative integer elapsed minutes; nonnegative pressure/makeup-water decimal strings; explicit units; note/time. | Append-only after acceptance; never edited/deleted after test lock; duplicate mutation is idempotent. | B capture/A route → A domain, C snapshot/report |
 | `Attachment` | Project/segment/test IDs; allowed type; protected file token; safe original name; MIME/size/caption/time; optional decimal location; SHA-256; creator/time. | Upload/metadata validate authoritatively; append-oriented; immutable after lock. `generated_pdf` is not signed source evidence. | B capture/A upload → C snapshot/report |
 | `Signature` | Test ID; signer name/company/role; protected signature reference plus image hash; exact attestation; signed time; optional location; signed record hash. | Created only by atomic signing route, never ordinary CRUD; never overwritten/logged; record hash must match stored canonical snapshot. | C signing route → B status, C report/export |
 | `AuditEvent` | Project/entity/event IDs and enums; actor/time/device; safe payload; chain scope; previous/event SHA-256 values. | Append-only server fact; client cannot choose hash/order; useful audit trail, not event-sourced state. | A/C authoritative routes → C report/export |
@@ -26,7 +39,7 @@ All wire fields use `snake_case`. IDs are opaque collision-resistant strings and
 | `SignedTestSnapshot` | `linecheck.signed-pressure-test.v1`; `linecheck-c14n-v1`; `sha-256`; IDs/time/audit head; allowlisted frozen project, segment, completed test, sorted readings/evidence, calculation, witness attestation. | Atomic server construction; canonical bytes and hash immutable. Signature image bytes/PDF presentation are excluded; signature-image hash is included. | C signing → B confirmation, C report/export, optional public consumers |
 | `SyncOperation` | `linecheck.sync-operation.v1`; unique `mutation_id`; client/device IDs; entity/type/operation; entity ID; base revision; occurred time; allowlisted payload. | `(client_id, mutation_id)` is idempotency key; locked entities reject; only safe unlocked fields may version-aware merge. | B outbox → A/C authoritative routes |
 | `SyncResult` | `linecheck.sync-result.v1`; mutation/entity IDs; `applied/duplicate/conflict/rejected`; server revision; conflict fields; nullable safe `ApiError`. | Duplicate returns original outcome; conflict/rejection stays actionable in outbox; no silent drop. | A/C routes → B outbox/status |
-| `ApiError` | Stable code, field-safe message/map, request ID; no stack, collection internals, secret, signature, or evidence path. | Additive codes allowed in v1; clients tolerate unknown codes with safe fallback. | A/C routes → B UI, integration consumers |
+| `ApiError` | `linecheck.api-error.v1`; stable code, field-safe message/map, request ID; no stack, collection internals, secret, signature, or evidence path. | Additive codes allowed in v1; clients tolerate unknown codes with safe fallback. | A/C routes → B UI, integration consumers |
 
 Additive optional v1 response fields must be ignored safely by older clients. Any new required field, removed/renamed field, enum expansion that an exhaustive client cannot tolerate, unit/meaning change, canonical field/order change, or idempotency semantic change needs a compatibility plan and normally v2. Contract file ownership does not authorize unilateral change: A proposes; B, C, and D review consumer, canonical-vector, and test-fixture impact before merge.
 
@@ -43,13 +56,21 @@ Additive optional v1 response fields must be ignored safely by older clients. An
 
 ## Workstream A — Domain and persistence
 
-### A-001 [P0] Finish v1 runtime schemas and mutation inputs
+### A-001 [P0, IN PROGRESS] Finish v1 runtime schemas and mutation inputs
+
+- **Current progress:** `src/contracts.ts` now owns the aligned runtime primitives/parsers; no
+  parallel contract file exists. Mutation allowlists and typed sync entity/operation pairs are
+  complete for the declared union. Foundational response parsers have table-driven vectors.
+- **Remaining before completion:** validators and valid/invalid/additive-field vectors for segment,
+  reading, attachment, signature, audit event, sync result, stored snapshot, void record, aggregate,
+  and the complete signed snapshot/frozen children; exhaustive enum compatibility review.
 
 - **User outcome:** Invalid or incompatible data is rejected consistently before it can reach a test record.
 - **Scope:** Align `src/contracts.ts` with the v1 table above; add runtime allowlist validators for every MVP input/response; embed contract/version rules; separate create/update DTOs from stored/response DTOs.
 - **Non-scope:** PocketBase collections, UI forms, formula implementation, or v2.
 - **Acceptance:** Result excludes `void`; segment status is derived/output-only; nullable/required fields, decimal/unit/date/ID enums, `mutation_id`, and safe `ApiError` validate with field-specific errors; no parallel contract file exists.
-- **Likely files/modules:** `src/contracts.ts`, `src/domain/validation.ts`, `tests/unit/contracts.test.*`.
+- **Likely files/modules:** `src/contracts.ts`, `tests/unit/contracts.test.*`. Aligned DTO validators
+  stay in `src/contracts.ts` under the repository ownership rule; do not create a parallel schema.
 - **Dependencies:** None; freezes vocabulary for other P0 packages.
 - **Test expectations:** Table-driven valid/invalid vectors for all required payloads plus forward-compatible optional-field and exhaustive-enum checks.
 - **Complexity:** M.
@@ -235,6 +256,18 @@ Additive optional v1 response fields must be ignored safely by older clients. An
 - **Complexity:** M.
 
 ## Workstream D — Platform and quality
+
+### D-000 [P0, COMPLETE] Restore executable verification baseline
+
+- **User outcome:** Contributors can detect contract/domain regressions before building the field
+  application.
+- **Delivered:** Deterministic Biome formatting/lint, strict TypeScript checking, an owned
+  `ArrayBuffer` Web Crypto digest input, ignored generated compiler output, a clear missing-test
+  prerequisite, and Node-native contract/domain unit tests.
+- **Acceptance evidence:** `pnpm run check`, `pnpm test`, and `pnpm build` pass at `6ce7a22`; 15
+  tests cover current validators and representative domain invariants.
+- **Non-scope still open:** clean/stale-proof PWA assembly (D-001), CI (D-002), PocketBase
+  integration lifecycle (D-003), browser/e2e behavior, and a pinned Node distribution.
 
 ### D-001 [P0] Make the framework-free PWA build reproducible
 

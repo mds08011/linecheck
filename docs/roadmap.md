@@ -1,8 +1,24 @@
 # LineCheck roadmap
 
-> Classification: **PROPOSED** delivery sequence. Every item is open at commit `34693b4` unless [`current-state.md`](current-state.md) explicitly identifies a current primitive; a type name is not a shipped capability.
+> Classification: **PROPOSED** delivery sequence with a **CURRENT** progress checkpoint through
+> `6ce7a22`. A type name or partial parser is not a shipped field capability; completion still
+> requires every row's acceptance criteria and tests.
 
 This roadmap is organized around usable vertical slices, not isolated technical layers. An item is complete only when its acceptance criteria and relevant tests pass in the open repository. “Owner” identifies product ownership, not who may contribute. `Core` means AGPL open-source `linecheck`; `Paid` means optional `linecheck-lookahead`. The paid repository is currently empty and is never a dependency for Phases 0–4 field work.
+
+## Current progress checkpoint — 2026-07-12
+
+| Roadmap item | Status | Evidence and remaining gate |
+|---|---|---|
+| R0-04 Formatting and linting | **CURRENT complete for present source** | `pnpm run check` passes with deterministic Biome format/lint. New app/static formats must join the gate when introduced. |
+| R0-05 Testing framework | **CURRENT partial** | Node-native unit discovery runs 15 contract/domain tests. PocketBase integration and browser/e2e layers remain absent. |
+| R0-06 Data-model foundation | **CURRENT in progress** | Typed mutation inputs and foundational runtime parsers are committed; remaining response parsers, lifecycle derivation, and PocketBase mappings/migrations keep the row open. |
+| R0-07 Architecture documentation | **CURRENT maintained** | Current state, decisions, invariants, backlog, and roadmap reflect the implementation checkpoint. The row remains ongoing while architecture changes. |
+
+The immediate route to the first persisted slice is: finish A-001 response validation → implement
+A-002 lifecycle/derived status → create A-003 migrations → add A-004 idempotent repositories.
+After A-001, calculation hardening, snapshot work, the mobile shell, and reproducible PWA build may
+proceed without changing the shared contract file.
 
 ## Phase 0 — Foundation
 
