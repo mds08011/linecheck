@@ -89,6 +89,9 @@ export function recordProjectSpecifiedAllowanceCalculation(
     contract_version: "linecheck.calculation-request.v1",
     method_id: "project_specified_allowance",
     method_version: "1.0.0",
+    method_status: template.status,
+    source_reference: template.source_reference,
+    calculated_at: calculatedAt,
     template_id: template.id,
     template_version: template.version,
     actual_makeup_water: { value: actualMakeupWater, unit: template.volume_unit },
@@ -105,9 +108,9 @@ export function recordProjectSpecifiedAllowanceCalculation(
     contract_version: "linecheck.calculation-result.v1",
     template_id: template.id,
     template_version: template.version,
-    method_status: template.status,
-    source_reference: template.source_reference,
-    calculated_at: calculatedAt,
+    method_status: request.method_status,
+    source_reference: request.source_reference,
+    calculated_at: request.calculated_at,
     warnings:
       template.status === "fixture_only"
         ? [

@@ -28,6 +28,7 @@ export async function appendPressureTestAuditEvent(
     .sort((a, b) => a.sequence - b.sequence);
   const previous = chain.at(-1) ?? null;
   const unsigned = {
+    contract_version: "linecheck.audit-event.v1",
     id: input.id,
     project_id: aggregate.project.id,
     entity_type: input.entity_type,

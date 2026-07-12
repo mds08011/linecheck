@@ -2,20 +2,17 @@ import type { PressureTestAggregate, PressureTestResult, TestSegmentStatus } fro
 import { DomainError } from "./errors.js";
 
 const SEGMENT_TRANSITIONS: Record<TestSegmentStatus, readonly TestSegmentStatus[]> = {
-  draft: ["ready", "void"],
-  ready: ["draft", "testing", "void"],
-  testing: ["passed", "failed", "void"],
-  passed: ["signed", "void"],
-  failed: ["signed", "void"],
-  signed: ["void"],
-  void: [],
+  draft: ["ready"],
+  ready: ["draft", "testing"],
+  testing: ["passed", "failed"],
+  passed: [],
+  failed: [],
 };
 
 const RESULT_TRANSITIONS: Record<PressureTestResult, readonly PressureTestResult[]> = {
-  pending: ["pass", "fail", "void"],
+  pending: ["pass", "fail"],
   pass: [],
   fail: [],
-  void: [],
 };
 
 export function assertSegmentTransition(from: TestSegmentStatus, to: TestSegmentStatus): void {
