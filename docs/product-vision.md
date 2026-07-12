@@ -1,5 +1,7 @@
 # Product vision
 
+> Classification: **DECIDED** product intent. This document is normative direction, not evidence that the described field workflow exists. Confirm implementation only in [`current-state.md`](current-state.md).
+
 ## The job LineCheck exists to do
 
 Pipeline acceptance records on water and wastewater projects are often assembled from a spreadsheet, handwritten readings, phone photos, email, a separate signature page, and the memory of whoever ran the test. The field team needs a fast way to capture the test while it is happening; the project team later needs one traceable record showing what was tested, under which project requirement, with what evidence, and who witnessed it.

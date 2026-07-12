@@ -1,76 +1,118 @@
 # LineCheck
 
-> LineCheck is an open-source, offline-tolerant field application for documenting pipeline pressure tests, witness signatures, supporting evidence, and acceptance records on water and wastewater construction projects.
+> **DECIDED product direction:** LineCheck is an open-source, offline-tolerant field application for documenting pipeline pressure tests, witness attestations, supporting evidence, and acceptance records on water and wastewater construction projects.
 
-LineCheck is for foremen, field engineers, inspectors, and owner representatives who need a defensible test record without turning field work into an enterprise-software rollout. It is intended to feel like a field instrument: large controls, visible units, minimal typing, and an explicit offline/synchronization state.
+> **CURRENT repository reality (2026-07-12, `34693b4`):** LineCheck is a pre-alpha TypeScript contract/domain scaffold. It is not yet a runnable field application and must not be used as the sole acceptance record on a live project.
 
-## MVP workflow
+Documentation uses five evidence labels: **CURRENT** is confirmed in the repository, **DECIDED** is an intentional direction, **PROPOSED** needs review, **DEPRECATED** is retained behavior intended for replacement, and **UNKNOWN** lacks enough evidence. See the authoritative [documentation index](docs/documentation-index.md).
 
-The first coherent slice is deliberately narrow:
+## What exists today
 
-1. Create a project and a physical test segment.
+**CURRENT:** The repository contains:
+
+- v1-named compile-time DTO interfaces for projects, test segments, pressure tests, readings, attachment metadata, attestations, audit events, snapshots, voids, and sync operations in [`src/contracts.ts`](src/contracts.ts);
+- exact decimal arithmetic, explicit unit conversion, and a supplied project-allowance comparison in [`src/domain/`](src/domain/);
+- generic canonicalization/SHA-256 helpers, in-memory audit-chain helpers, lifecycle preconditions, and PocketBase-compatible local ID generation;
+- a pinned pnpm/TypeScript/Biome toolchain and product/planning documentation.
+
+**CURRENT:** There is no `src/app/`, `src/evidence/`, `pb_migrations/`, `pb_hooks/`, `pb_public/`, `tests/`, API, database, authentication, upload path, offline store, report/export implementation, CI workflow, or deployment package. The [current-state audit](docs/current-state.md) is the evidence-backed inventory.
+
+**CURRENT limitation:** At the audited commit, TypeScript checking fails in `src/domain/canonicalize.ts`, the formatting check fails, and the test launcher fails because no `tests/` directory exists. These are recorded facts, not documentation-session fixes.
+
+## Product purpose and users
+
+**DECIDED:** LineCheck is intended for foremen, field engineers, inspectors, and owner representatives documenting acceptance of linear infrastructure and service connections. Its core question is:
+
+> Has this pipeline segment or service connection completed the required acceptance sequence, and can the project retain the evidence?
+
+**DECIDED:** The field experience should behave like a specialized instrument: glove-sized controls, explicit units, minimal typing, high contrast, and visible offline/unsynced/export state.
+
+## Intended pressure-test slice
+
+**DECIDED, not implemented:** The first coherent slice is:
+
+1. Create or select a project and physical test segment.
 2. Start a pressure-test record from project-specific parameters.
 3. Capture gauge/calibration evidence and at least two readings.
-4. Record makeup water and run the configured calculation.
-5. Review the result with a witness and capture their attestation and signature.
-6. Serialize and SHA-256 hash a canonical signed snapshot, then lock the record.
-7. Print a professional test report and export the underlying data.
+4. Record makeup water and run the configured comparison.
+5. Review the record with a witness and capture their attestation/signature.
+6. Build and hash a canonical signed snapshot in one authoritative lock action.
+7. Produce print-ready HTML and versioned basic data exports.
 
-The MVP calculation is a **project-specified allowance fixture** used to prove the versioned calculation contract. It is not a universal pressure/leakage equation or an adopted engineering standard. A project must supply and approve its actual test method, units, comparison, and rounding rules.
+**CURRENT calculation primitive:** `calculateProjectSpecifiedAllowance()` compares an actual makeup-water value with an allowance supplied to it, using exact decimal arithmetic and an explicit tolerance. It does not derive an allowance or implement AWWA/owner criteria. There is no authoritative project-template store or runtime validator, so the primitive is not an approved field method.
 
-## Current status
+The detailed release target is [`docs/mvp-scope.md`](docs/mvp-scope.md); open implementation packages are in [`docs/backlog.md`](docs/backlog.md).
 
-LineCheck is **pre-alpha**. This repository began with only the AGPL-3.0 license and is establishing the documented contracts and first domain slice. Treat only behavior exercised by the checked-in tests as implemented.
+## Architecture status
 
-The complete browser field flow, durable multi-device offline synchronization, hardened production authorization, and a production PDF renderer are not complete. The initial reporting target is deterministic, print-ready HTML that a user can save as PDF through the browser; a production PDF-generation service remains planned. Do not use LineCheck as the sole acceptance record on a live project yet.
+| Topic | Status | Repository evidence or direction |
+|---|---|---|
+| Domain contracts and exact arithmetic | CURRENT | TypeScript types/helpers exist; runtime validation and tests do not |
+| Framework-free mobile TypeScript client | DECIDED | No client source or browser entry point exists |
+| One PocketBase/SQLite service | DECIDED | No migrations, hooks, collections, or setup script exist |
+| Offline drafts and synchronization | PROPOSED | DTO vocabulary and local ID helper only |
+| Signature, canonical snapshot, and lock | DECIDED | Types/generic hash helpers only; no allowlisted builder or transaction |
+| Print-ready HTML/basic exports | DECIDED | No renderer or export exists |
+| Production PDF | PROPOSED | Renderer and byte-stability requirements are unresolved |
+| Authentication/authorization | UNKNOWN | No implementation or accepted mechanics |
 
-## What LineCheck is not
+See [`docs/architecture-status.md`](docs/architecture-status.md) for the complete decision register and contradictions.
 
-LineCheck is not an electrical loop-checking tool, Procore replacement, generic inspection/form builder, ERP, scheduler, estimating system, payroll/timecard system, accounting system, daily-report tool, BIM viewer, messaging platform, laboratory integration, or public owner portal. It does not interpret every specification, make one leakage equation universal, or claim that a captured signature alone is legally enforceable.
+## Local repository inspection
 
-## Architecture
-
-- **Field client:** framework-free, mobile-first TypeScript and static assets in `src/app/`, compiled into generated `pb_public/` files. No runtime CDN or mandatory app-store install.
-- **Shared contracts:** versioned wire DTO definitions in `src/contracts.ts`, with runtime validation still to be completed; database records are not the public contract.
-- **Domain:** pure calculation and lifecycle logic in `src/domain/` with raw inputs, explicit units, method versions, and deterministic tests.
-- **Evidence:** canonical snapshots, SHA-256 hashing, locking, audit assembly, and basic exports in `src/evidence/`.
-- **Service:** one PocketBase process backed by SQLite, with migrations in `pb_migrations/` and authoritative mutation routes/adapters in `pb_hooks/`.
-- **Offline model:** local drafts and queued, idempotent mutations with client-generated IDs; append-only readings/attachments; explicit resolution for unsafe conflicts; signed or locked records are never silently overwritten.
-
-The signed snapshot hash is tamper-evident application evidence. It is not a blockchain, a trusted timestamp, or proof that the surrounding device/server was uncompromised. See the architecture, data, sync, and integrity documents under [`docs/`](docs/).
-
-## Local development
-
-Prerequisites are Git, Node.js 24 or newer as declared in `package.json`, Corepack/pnpm, and a supported PocketBase binary for integration work. The repository-standard package manager is **pnpm**; do not generate npm or Yarn lockfiles.
+**CURRENT:** Development requires Node.js 24 or newer and the pinned pnpm version in `package.json`.
 
 ```sh
 corepack enable
 pnpm install --frozen-lockfile
-pnpm run check
-pnpm test
-pnpm build
+pnpm run lint
+pnpm run format:check
+pnpm run typecheck
+node scripts/run-tests.mjs
 ```
 
-`pnpm build` must compile the static PWA into `pb_public/`; do not hand-edit that generated directory. Consult `package.json` for the scripts present in the current pre-alpha scaffold. PocketBase integration and end-to-end checks may require the locally installed binary and clearly fictional seed data.
+**CURRENT limitation:** This command set is not green at `34693b4`; consult [`docs/current-state.md`](docs/current-state.md) for exact results. `pnpm build` currently runs only `tsc` with output directed to `pb_public/assets`; it does not assemble a PWA. No local server/start command exists.
 
-## Self-hosting direction
+## Deployment and self-hosting
 
-The intended deployment is one PocketBase/SQLite service serving `pb_public/` on a single machine or in a single container. There are no mandatory cloud dependencies. Production guidance will require HTTPS, authentication with least-privilege collection rules, upload limits, protected evidence URLs, tested backups/restores, and retention decisions. `pb_data/`, uploaded evidence, generated reports, and secrets are operator data and must not be committed. Deployment automation is not yet production-ready.
+**DECIDED:** The intended deployment is one PocketBase process with embedded SQLite serving generated static assets, without a mandatory cloud dependency or paid runtime.
 
-## `linecheck-lookahead`
+**CURRENT:** LineCheck has no PocketBase schema, binary setup, container, service definition, proxy configuration, backup script, restore drill, or supported deployment. `.env.example` is an unused placeholder and currently refers to setup scripts that do not exist. Do not expose this scaffold as a production service.
 
-[`linecheck`](https://github.com/mds08011/linecheck) owns everything required to do field work: capture, project-configured calculations when those methods are implemented, evidence, signatures, locking, self-hosting, local backups, and basic report/JSON/CSV exports. The present calculation remains a fixture, not an approved field method. The sibling `linecheck-lookahead` repository is currently empty and is never required for field work. It may later consume public, versioned contracts for managed hosting, coordination, notifications, integrations, portfolio views, and advanced report compilation. It receives no private database access or privileged in-process hook.
+## Product-family boundary
 
-## Roadmap
+**CURRENT ecosystem evidence:** Local sibling repositories reveal four field bounded contexts, not three:
 
-The roadmap is organized as vertical slices: Phase 0 foundation; Phase 1 pressure-test MVP; Phase 2 field hardening; Phase 3 disinfection and clearance; Phase 4 project templates; and Phase 5 optional Lookahead integration. Every roadmap item names its user problem, acceptance criteria, dependencies, ownership, and horizon in [`docs/roadmap.md`](docs/roadmap.md). Agent-sized work packages and collision boundaries are in [`docs/backlog.md`](docs/backlog.md).
+- **TrenchNote** owns receipt, storage, custody, movement, consumption references, and asset/material inspection.
+- **MainLine** owns stationed pothole/existing-condition records, constructed fusion/weld joints, NDT, and joint-level acceptance evidence.
+- **LoopCheck** owns plant equipment/process-system checkout and currently also implements service cutover; its local branch contains incomplete segment-acceptance overlap.
+- **LineCheck** is **DECIDED** to own segment/service acceptance sequences, but currently owns no persisted field records.
 
-## Contributing
+**PROPOSED:** Service cutover may eventually migrate from LoopCheck to LineCheck. MainLine should remain authoritative for construction/joint facts unless a separate decision says otherwise. No migration or shared database is authorized. See the [product boundary](docs/product-boundary.md), [lifecycle map](docs/lifecycle-map.md), and [overlap/migration analysis](docs/overlap-and-migrations.md).
 
-Read [`CONTRIBUTING.md`](CONTRIBUTING.md) and [`AGENTS.md`](AGENTS.md) before changing code. Keep patches small, preserve the versioned contracts, add tests at the appropriate level, and update documentation when behavior changes. Pressure-test methods and attestations require traceable project authority; do not add a formula because it is common in another jurisdiction.
+## Core and optional paid layer
 
-Security issues should follow [`SECURITY.md`](SECURITY.md), not a public issue.
+**DECIDED:** Field capture, project-authorized calculations, evidence, attestation, locking, self-hosting, backups, and basic single-record report/data exports belong in open-source core. Managed operations, notifications, integrations, portfolio views, and advanced compilation may live in an optional sidecar.
 
-## License
+**CURRENT:** `linecheck-lookahead` is an empty sibling repository with no commits. LineCheck has no integration with it and must never require it for field work. See [`docs/open-source-paid-boundary.md`](docs/open-source-paid-boundary.md).
 
-LineCheck is licensed under the [GNU Affero General Public License v3.0](LICENSE). The open-source field workflow is not intentionally weakened to create paid features; users must be able to retain and export their own records without `linecheck-lookahead`.
+## Explicit non-goals
+
+**DECIDED:** LineCheck is not an electrical loop-checking tool, Procore replacement, generic form/workflow engine, ERP, scheduler, estimating system, payroll/timecard system, accounting system, daily-report tool, BIM viewer, messaging platform, laboratory API, or public owner portal. It will not assume one universal leakage equation or claim that a captured signature alone guarantees legal enforceability.
+
+## Documentation
+
+Start with [`docs/documentation-index.md`](docs/documentation-index.md). The most important records are:
+
+- [`docs/current-state.md`](docs/current-state.md) — descriptive evidence at the audited commit;
+- [`docs/product-boundary.md`](docs/product-boundary.md) — decided domain plus current deviations;
+- [`docs/domain-model.md`](docs/domain-model.md) — current type model separated from proposed persistence;
+- [`docs/architecture-status.md`](docs/architecture-status.md) — decision status and risk table;
+- [`docs/open-questions.md`](docs/open-questions.md) — unresolved decision backlog;
+- [`docs/adr/`](docs/adr/) — accepted and proposed architecture decisions.
+
+## Contributing, security, and license
+
+**DECIDED process:** Read [`CONTRIBUTING.md`](CONTRIBUTING.md) and [`AGENTS.md`](AGENTS.md) before changing the repository. Report security issues through the private process in [`SECURITY.md`](SECURITY.md).
+
+**CURRENT legal status:** LineCheck is licensed under the [GNU Affero General Public License v3.0](LICENSE).

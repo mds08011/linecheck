@@ -1,5 +1,7 @@
 # Agent-ready backlog
 
+> Classification: **PROPOSED** work inventory. Paths and acceptance criteria describe intended work, not current modules. The only current implementation inventory is [`current-state.md`](current-state.md).
+
 This backlog decomposes the pressure-test MVP into reviewable packages that can be assigned independently after their dependencies settle. An item is open until every acceptance criterion and test expectation passes; partial scaffold code does not close it. Priorities are `P0` (blocks the first coherent slice), `P1` (MVP completion/hardening), and `P2` (post-MVP).
 
 The highest-priority dependency chain is **A-001 → A-002 → A-003 → A-004 → C-001**. After A-001 fixes the shared vocabulary, A-005, B-001, C-001, and D-001 can proceed in parallel without sharing implementation files.
@@ -58,7 +60,7 @@ Additive optional v1 response fields must be ignored safely by older clients. An
 - **Scope:** Pure transition rules for draft/start/complete/sign/lock; authoritative `pending/pass/fail`; separate void disposition; derive segment display status from tests and replacement chain.
 - **Non-scope:** Persistence, UI, signature bytes, or sync conflict UX.
 - **Acceptance:** Illegal transitions return stable domain errors; locked state is terminal for ordinary edits; signed fail is valid evidence; void requires reason/actor/time and never changes calculation result; no client-set segment status.
-- **Likely files/modules:** `src/domain/lifecycle.ts`, `src/domain/errors.ts`, `tests/unit/lifecycle.test.*`.
+- **Likely files/modules:** extend or replace the current `src/domain/transitions.ts` deliberately, plus `src/domain/errors.ts` and `tests/unit/lifecycle.test.*`; do not create a parallel lifecycle authority without resolving ownership.
 - **Dependencies:** A-001.
 - **Test expectations:** Transition matrix including repeated commands, fail/sign, lock mutation rejection, void/replace, and derived segment states.
 - **Complexity:** M.
@@ -172,7 +174,7 @@ Additive optional v1 response fields must be ignored safely by older clients. An
 - **Scope:** Allowlisted `SignedTestSnapshot` builder; deterministic field/array order, string/decimal/time rules; UTF-8 canonical JSON; SHA-256; stored snapshot envelope; golden vectors.
 - **Non-scope:** PDF byte hashing, signature capture UI, audit event chain, encryption, PKI, or blockchain.
 - **Acceptance:** Shuffled input/order normalizes to identical bytes where contract allows; a signed-field change changes hash; mutable DB/presentation/generated-PDF fields are excluded; exact bytes/hash are fixture-pinned.
-- **Likely files/modules:** `src/evidence/canonicalize.ts`, `src/evidence/snapshot.ts`, `src/evidence/hash.ts`, `tests/unit/evidence/**`.
+- **Likely files/modules:** current primitive `src/domain/canonicalize.ts`, future `src/evidence/snapshot.ts` / `hash.ts`, and `tests/unit/evidence/**`. Resolve the domain-versus-evidence ownership deviation before moving code or creating another canonicalizer.
 - **Dependencies:** A-001; coordinate any snapshot field change with A/B/D.
 - **Test expectations:** Golden UTF-8 bytes/SHA-256, Unicode normalization policy, array sorting/tie rejection, decimal/time edge cases, excluded-field mutation.
 - **Complexity:** M.
@@ -183,7 +185,7 @@ Additive optional v1 response fields must be ignored safely by older clients. An
 - **Scope:** Safe event payload allowlists, chain-scope ordering, previous/event hash calculation, append API, and events for MVP create/start/read/calculate/attach/sign/lock/export.
 - **Non-scope:** Full event sourcing, distributed consensus, blockchain, or logging signature/evidence bodies.
 - **Acceptance:** Server assigns order/time/hash atomically; concurrent append is serialized or conflicts/retries; chain verifies from genesis; payload redaction tests pass; client cannot forge event hash.
-- **Likely files/modules:** `src/evidence/audit.ts`, `pb_hooks/signing/audit.*`, `tests/unit/evidence/audit.*`, integration tests.
+- **Likely files/modules:** current primitive `src/domain/audit.ts`, `pb_hooks/signing/audit.*`, `tests/unit/evidence/audit.*`, and integration tests. Do not add a second audit implementation under `src/evidence/` before the ownership decision.
 - **Dependencies:** A-003, A-004, C-001 for canonical primitives.
 - **Test expectations:** Golden event hash, multi-event verification, tamper detection, concurrent append, rejected sensitive payload.
 - **Complexity:** M.

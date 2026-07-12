@@ -1,5 +1,7 @@
 # LineCheck roadmap
 
+> Classification: **PROPOSED** delivery sequence. Every item is open at commit `34693b4` unless [`current-state.md`](current-state.md) explicitly identifies a current primitive; a type name is not a shipped capability.
+
 This roadmap is organized around usable vertical slices, not isolated technical layers. An item is complete only when its acceptance criteria and relevant tests pass in the open repository. “Owner” identifies product ownership, not who may contribute. `Core` means AGPL open-source `linecheck`; `Paid` means optional `linecheck-lookahead`. The paid repository is currently empty and is never a dependency for Phases 0–4 field work.
 
 ## Phase 0 — Foundation

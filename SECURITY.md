@@ -1,5 +1,7 @@
 # Security policy
 
+> Classification: **DECIDED** release/security requirements plus a **CURRENT** pre-alpha warning. No server, authentication, upload, signature, lock, or evidence-retention control is implemented today; see [`docs/current-state.md`](docs/current-state.md).
+
 LineCheck is pre-alpha and has no supported production release. Do not rely on it as the only repository for active-project acceptance evidence. Security fixes may change unreleased contracts.
 
 ## Reporting a vulnerability
@@ -10,7 +12,7 @@ Include the affected revision, deployment shape, impact, reproduction steps usin
 
 ## Security model
 
-LineCheck retains construction records that can include names, signatures, photographs, timestamps, optional location, and specification references. Operators are responsible for authorization, retention, disclosure, backup, and jurisdiction-specific signature requirements.
+**DECIDED future data scope:** A deployed LineCheck may retain construction records that include names, signatures, photographs, timestamps, optional location, and specification references. Operators will be responsible for authorization, retention, disclosure, backup, and jurisdiction-specific signature requirements.
 
 The application must enforce these invariants:
 
@@ -25,7 +27,7 @@ The application must enforce these invariants:
 
 ## Evidence-integrity limits
 
-LineCheck creates a deterministic canonical signed snapshot and stores its SHA-256 hash with the attestation. This can expose later changes to the serialized evidence. It does not prove who controlled the device, protect a compromised server, provide a trusted timestamp, or make the record legally enforceable in every jurisdiction. HTTPS, authentication, authorization, audit review, protected backups, and operational controls remain necessary.
+**DECIDED mechanism, not current behavior:** LineCheck is intended to create a deterministic canonical signed snapshot and store its SHA-256 hash with the attestation. If implemented and verified, this can expose later changes to the serialized evidence. It will not prove who controlled the device, protect a compromised server, provide a trusted timestamp, or make the record legally enforceable in every jurisdiction. HTTPS, authentication, authorization, audit review, protected backups, and operational controls remain necessary.
 
 ## Deployment baseline
 

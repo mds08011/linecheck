@@ -2,6 +2,8 @@
 
 Read this file before changing LineCheck. The repository is an AGPL-3.0, pre-alpha, field-first application for documenting pipeline pressure tests on water and wastewater construction projects.
 
+> Documentation classification: **DECIDED** repository and product constraints. The path map below includes intended modules that do not exist yet; use [`docs/current-state.md`](docs/current-state.md) for **CURRENT** implementation evidence.
+
 ## Non-negotiable product constraints
 
 1. The MVP is one pressure-test vertical slice: project → segment → readings/evidence → clearly labeled project-specified fixture calculation → witness attestation → canonical signed snapshot → lock → print-ready report/basic export. A future project-authorized method is not implemented by the fixture.

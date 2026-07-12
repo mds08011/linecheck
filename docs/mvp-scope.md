@@ -1,5 +1,7 @@
 # MVP scope
 
+> Classification: **DECIDED** release target. None of the workflow below is current unless [`current-state.md`](current-state.md) explicitly confirms it.
+
 ## Outcome
 
 The MVP is complete when a field user can create/select a fictional project and pipeline segment, document one pressure test with readings and evidence, obtain a witness attestation, atomically freeze and lock the record, and receive a professional print-ready report plus a deterministic JSON export. The slice must be coherent end to end before disinfection, dashboards, or integrations begin.
@@ -46,7 +48,7 @@ CSV export and QR/direct-link access are core commitments; they may ship immedia
 - Canonicalization has golden byte/hash vectors and excludes mutable presentation/PDF details; identical semantic input produces identical bytes across supported runtimes.
 - Duplicate offline submissions with the same `mutation_id` return the original result; they do not create duplicate tests, readings, signatures, or audit events.
 - Conflicting completed-record edits require user resolution. Signed or locked evidence is never last-write-wins.
-- The report includes the fields specified in `docs/pdf-specification.md`; browser printing is checked at phone and letter/A4 layouts. Production PDF rendering remains explicitly incomplete.
+- The report field specification remains **UNKNOWN** and must be accepted before implementation; see [`open-questions.md`](open-questions.md). Browser printing must be checked at phone and letter/A4 layouts. Production PDF rendering remains explicitly incomplete.
 - One integration test covers the complete happy path and rejects a post-lock edit. One end-to-end path records a failed signed test as valid evidence and starts a separate replacement.
 - All fixtures are marked fictional; secrets, real signatures, `pb_data/`, uploads, and generated reports are absent from source control.
 

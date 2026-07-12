@@ -1,5 +1,7 @@
 # Contributing to LineCheck
 
+> Classification: **DECIDED** contribution process. The repository is not yet green: see [`docs/current-state.md`](docs/current-state.md) before assuming the commands or target directories below exist.
+
 LineCheck welcomes focused bug fixes, tests, field-workflow feedback, and documentation improvements. The project is pre-alpha: discuss substantial features in an issue before investing in them, and do not assume that an attractive mockup represents an accepted contract.
 
 ## Before a change
