@@ -1,0 +1,25 @@
+{
+  "name": "linecheck",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Offline-tolerant pipeline pressure-test field records",
+  "license": "AGPL-3.0-only",
+  "packageManager": "pnpm@11.7.0",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "biome lint .",
+    "format": "biome format --write .",
+    "format:check": "biome format .",
+    "test": "pnpm build && node scripts/run-tests.mjs",
+    "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.3.15",
+    "typescript": "5.9.3"
+  }
+}

@@ -1,0 +1,30 @@
+# Dependencies and local tooling
+node_modules/
+.pnpm-store/
+.tmp/
+coverage/
+
+# PocketBase runtime data and downloaded binaries
+pb_data/
+pocketbase
+pocketbase.exe
+pocketbase_*.zip
+
+# Field evidence and generated deliverables never belong in source control
+uploads/
+exports/
+generated/
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+*.local.pdf
+
+# Local configuration and editor state
+.env
+.env.*
+!.env.example
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
