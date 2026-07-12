@@ -35,4 +35,3 @@ The boundary is documented in [`../open-source-paid-boundary.md`](../open-source
 
 - [`../open-source-paid-boundary.md`](../open-source-paid-boundary.md)
 - [`../product-vision.md`](../product-vision.md)
-

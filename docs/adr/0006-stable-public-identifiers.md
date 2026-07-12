@@ -37,4 +37,3 @@ Not implemented. The proposal must be resolved before publishing a stable LineCh
 - [`../../src/domain/ids.ts`](../../src/domain/ids.ts)
 - [`../ecosystem-contracts.md`](../ecosystem-contracts.md)
 - [`../open-questions.md`](../open-questions.md)
-

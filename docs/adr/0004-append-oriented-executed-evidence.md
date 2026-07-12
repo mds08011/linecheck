@@ -38,4 +38,3 @@ Draft records may be edited under explicit revision/conflict rules. Executed chi
 - [`../../src/domain/audit.ts`](../../src/domain/audit.ts)
 - [`../../src/contracts.ts`](../../src/contracts.ts)
 - [`../invariants.md`](../invariants.md)
-

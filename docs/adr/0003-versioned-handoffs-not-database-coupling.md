@@ -36,4 +36,3 @@ LineCheck has v1-named TypeScript interfaces in [`../../src/contracts.ts`](../..
 
 - [`../ecosystem-contracts.md`](../ecosystem-contracts.md)
 - [`../open-questions.md`](../open-questions.md)
-

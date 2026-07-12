@@ -37,4 +37,3 @@ Separate repositories are **CURRENT**. LineCheck itself is only a domain/contrac
 - [`../product-boundary.md`](../product-boundary.md)
 - [`../lifecycle-map.md`](../lifecycle-map.md)
 - [`../overlap-and-migrations.md`](../overlap-and-migrations.md)
-

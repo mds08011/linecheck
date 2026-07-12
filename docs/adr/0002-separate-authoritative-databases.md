@@ -36,4 +36,3 @@ TrenchNote, MainLine, and LoopCheck currently use separate PocketBase/SQLite ins
 
 - [`../current-state.md`](../current-state.md)
 - [`0003-versioned-handoffs-not-database-coupling.md`](0003-versioned-handoffs-not-database-coupling.md)
-

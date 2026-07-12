@@ -15,4 +15,3 @@ ADRs record one decision and its implementation status. They do not replace the 
 | [0007](0007-service-cutover-ownership.md) | PROPOSED | LoopCheck currently owns a working implementation |
 
 New ADRs must use: Title, Status, Date, Context, Decision, Consequences, Alternatives considered, Implementation status, and Related files. Supersede an ADR instead of rewriting its historical decision.
-
