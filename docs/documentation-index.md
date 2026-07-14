@@ -45,6 +45,7 @@
 | [`docs/mvp-scope.md`](mvp-scope.md) | Normative release target | DECIDED pressure-test cut line. Explicitly does not claim implementation; unresolved release-cut conflicts are tracked in `open-questions.md`. |
 | [`docs/open-source-paid-boundary.md`](open-source-paid-boundary.md) | Normative + Proposed | DECIDED core/paid capability boundary; future sidecar/API/event mechanics are PROPOSED unless repository evidence says otherwise. |
 | [`docs/roadmap.md`](roadmap.md) | Proposed | Dependency/horizon plan. A row is not complete without its acceptance criteria and tests; no roadmap row is a CURRENT feature merely because it is listed. |
+| [`docs/plans/phase-1-plan.md`](plans/phase-1-plan.md) | Proposed | Implementation plan sequencing the roadmap Phase 1 rows (R1-01…R1-13) into reviewable work packages with owners, tests, and required maintainer decisions. Grants no capability by itself. |
 | [`docs/backlog.md`](backlog.md) | Proposed with descriptive fragments | Open work packages and collision rules. The “contract baseline” mixes CURRENT type names with intended validation/persistence semantics and must be read with `current-state.md`. |
 
 ## Architecture decision records
