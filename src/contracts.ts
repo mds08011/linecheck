@@ -21,6 +21,7 @@ export type VolumeUnit = "gal_us" | "l";
 export type TestSegmentStatus = "draft" | "ready" | "testing" | "passed" | "failed";
 
 export type PressureTestResult = "pending" | "pass" | "fail";
+export type PredecessorRelation = "retest_after_failure" | "replacement_after_void";
 
 export type AttachmentType =
   | "photo"
@@ -93,9 +94,9 @@ export interface PressureTest {
   test_duration_minutes: number | null;
   starting_pressure: DecimalString | null;
   ending_pressure: DecimalString | null;
-  makeup_water: DecimalString | null;
-  allowable_leakage: DecimalString | null;
-  calculation_method: string;
+  actual_makeup_water: DecimalString | null;
+  allowable_makeup_water: DecimalString | null;
+  calculation_method: "project_specified_allowance@1.0.0";
   calculation_inputs_json: CalculationRequest | null;
   calculation_result_json: CalculationResult | null;
   result: PressureTestResult;
@@ -105,7 +106,8 @@ export interface PressureTest {
   signed_at: IsoDateTime | null;
   locked_at: IsoDateTime | null;
   created_by: string;
-  supersedes_test_id: EntityId | null;
+  predecessor_test_id: EntityId | null;
+  predecessor_relation: PredecessorRelation | null;
   created_at: IsoDateTime;
   updated_at: IsoDateTime;
   revision: number;
@@ -326,15 +328,16 @@ export interface FrozenPressureTestRecord {
   test_duration_minutes: number;
   starting_pressure: DecimalString;
   ending_pressure: DecimalString;
-  makeup_water: DecimalString;
-  allowable_leakage: DecimalString;
-  calculation_method: string;
+  actual_makeup_water: DecimalString;
+  allowable_makeup_water: DecimalString;
+  calculation_method: "project_specified_allowance@1.0.0";
   result: Exclude<PressureTestResult, "pending">;
   notes: string;
   started_at: IsoDateTime;
   completed_at: IsoDateTime;
   created_by: string;
-  supersedes_test_id: EntityId | null;
+  predecessor_test_id: EntityId | null;
+  predecessor_relation: PredecessorRelation | null;
 }
 
 export interface FrozenAttachmentEvidence {
@@ -398,7 +401,7 @@ export interface VoidRecord {
   contract_version: "linecheck.void-record.v1";
   id: EntityId;
   pressure_test_id: EntityId;
-  replacement_test_id: EntityId | null;
+  replacement_test_id: EntityId;
   original_record_hash: Sha256Hex;
   reason: string;
   voided_by: string;
@@ -453,7 +456,8 @@ export interface PressureTestCreateInput {
   calculation_method: "project_specified_allowance@1.0.0";
   notes: string;
   created_by: string;
-  supersedes_test_id: EntityId | null;
+  predecessor_test_id: EntityId | null;
+  predecessor_relation: PredecessorRelation | null;
 }
 
 export type PressureTestUpdateInput = Partial<
@@ -794,6 +798,38 @@ function readNullableIdentifier(
   return record[field] === null ? null : readIdentifier(record, field, path, errors);
 }
 
+function readPredecessor(
+  record: UnknownRecord,
+  path: string,
+  errors: FieldErrors,
+): Pick<PressureTest, "predecessor_test_id" | "predecessor_relation"> {
+  const predecessorTestId = readNullableIdentifier(
+    record,
+    "predecessor_test_id",
+    path,
+    errors,
+  );
+  const rawRelation = record.predecessor_relation;
+  const predecessorRelation =
+    rawRelation === null
+      ? null
+      : readEnum(record, "predecessor_relation", path, errors, [
+          "retest_after_failure",
+          "replacement_after_void",
+        ]);
+  if ((predecessorTestId === null) !== (predecessorRelation === null)) {
+    addError(
+      errors,
+      pathFor(path, "predecessor_relation"),
+      "Predecessor ID and relation must either both be present or both be null.",
+    );
+  }
+  return {
+    predecessor_test_id: predecessorTestId,
+    predecessor_relation: predecessorRelation,
+  };
+}
+
 function readBoolean(
   record: UnknownRecord,
   field: string,
@@ -826,6 +862,86 @@ function readStringArray(
     }
     return entry;
   });
+}
+
+function readSha256(
+  record: UnknownRecord,
+  field: string,
+  path: string,
+  errors: FieldErrors,
+  nullable = false,
+): Sha256Hex | null {
+  if (nullable && record[field] === null) return null;
+  const value = readString(record, field, path, errors);
+  if (!SHA256_PATTERN.test(value)) {
+    addError(errors, pathFor(path, field), "Enter a lowercase SHA-256 hex digest.");
+  }
+  return value;
+}
+
+function buildArray<T>(
+  value: unknown,
+  path: string,
+  errors: FieldErrors,
+  builder: (entry: unknown, entryPath: string, entryErrors: FieldErrors) => T,
+): T[] {
+  if (!Array.isArray(value)) {
+    addError(errors, path, "Expected an array.");
+    return [];
+  }
+  return value.map((entry, index) => builder(entry, `${path}.${index}`, errors));
+}
+
+function buildJsonValue(
+  value: unknown,
+  path: string,
+  errors: FieldErrors,
+  ancestors: WeakSet<object>,
+  depth: number,
+): unknown {
+  if (depth > 20) {
+    addError(errors, path, "JSON payload nesting is too deep.");
+    return null;
+  }
+  if (value === null || typeof value === "string" || typeof value === "boolean") return value;
+  if (typeof value === "number") {
+    if (!Number.isFinite(value)) addError(errors, path, "JSON numbers must be finite.");
+    return value;
+  }
+  if (typeof value !== "object") {
+    addError(errors, path, "Expected a JSON-compatible value.");
+    return null;
+  }
+  if (ancestors.has(value)) {
+    addError(errors, path, "JSON payloads cannot contain cycles.");
+    return null;
+  }
+  ancestors.add(value);
+  try {
+    if (Array.isArray(value)) {
+      return value.map((entry, index) =>
+        buildJsonValue(entry, `${path}.${index}`, errors, ancestors, depth + 1),
+      );
+    }
+    const prototype = Object.getPrototypeOf(value);
+    if (prototype !== Object.prototype && prototype !== null) {
+      addError(errors, path, "Expected a plain JSON object.");
+      return {};
+    }
+    return Object.fromEntries(
+      Object.entries(value as UnknownRecord).map(([field, entry]) => [
+        field,
+        buildJsonValue(entry, pathFor(path, field), errors, ancestors, depth + 1),
+      ]),
+    );
+  } finally {
+    ancestors.delete(value);
+  }
+}
+
+function buildJsonRecord(value: unknown, path: string, errors: FieldErrors): UnknownRecord {
+  const record = readObject(value, path, errors);
+  return buildJsonValue(record, path, errors, new WeakSet(), 0) as UnknownRecord;
 }
 
 function finish<T>(errors: FieldErrors, value: T): T {
@@ -889,12 +1005,17 @@ export function parseProjectUpdateInput(value: unknown): ProjectUpdateInput {
   return finish(errors, result);
 }
 
-export function parseProject(value: unknown): Project {
-  const errors: FieldErrors = {};
-  const record = readObject(value, "", errors);
-  const result: Project = {
-    contract_version: readLiteral(record, "contract_version", "", errors, "linecheck.project.v1"),
-    id: readIdentifier(record, "id", "", errors),
+function buildProject(value: unknown, path: string, errors: FieldErrors): Project {
+  const record = readObject(value, path, errors);
+  return {
+    contract_version: readLiteral(
+      record,
+      "contract_version",
+      path,
+      errors,
+      "linecheck.project.v1",
+    ),
+    id: readIdentifier(record, "id", path, errors),
     ...buildProjectCreateInput(
       {
         name: record.name,
@@ -903,14 +1024,18 @@ export function parseProject(value: unknown): Project {
         contractor_name: record.contractor_name,
         timezone: record.timezone,
       },
-      "",
+      path,
       errors,
     ),
-    created_at: readDateTime(record, "created_at", "", errors) ?? "",
-    updated_at: readDateTime(record, "updated_at", "", errors) ?? "",
-    revision: readInteger(record, "revision", "", errors, { minimum: 0 }) ?? 0,
+    created_at: readDateTime(record, "created_at", path, errors) ?? "",
+    updated_at: readDateTime(record, "updated_at", path, errors) ?? "",
+    revision: readInteger(record, "revision", path, errors, { minimum: 0 }) ?? 0,
   };
-  return finish(errors, result);
+}
+
+export function parseProject(value: unknown): Project {
+  const errors: FieldErrors = {};
+  return finish(errors, buildProject(value, "", errors));
 }
 
 function buildTestSegmentCreateInput(
@@ -1040,7 +1165,8 @@ function buildPressureTestCreateInput(
       "calculation_method",
       "notes",
       "created_by",
-      "supersedes_test_id",
+      "predecessor_test_id",
+      "predecessor_relation",
     ],
     path,
     errors,
@@ -1066,7 +1192,7 @@ function buildPressureTestCreateInput(
     ),
     notes: readString(record, "notes", path, errors),
     created_by: readIdentifier(record, "created_by", path, errors),
-    supersedes_test_id: readNullableIdentifier(record, "supersedes_test_id", path, errors),
+    ...readPredecessor(record, path, errors),
   };
 }
 
@@ -1242,9 +1368,14 @@ export function parseAttachmentCreateInput(value: unknown): AttachmentCreateInpu
   return finish(errors, buildAttachmentCreateInput(value, "", errors));
 }
 
-function buildMeasurement(value: unknown, path: string, errors: FieldErrors): Measurement {
+function buildMeasurement(
+  value: unknown,
+  path: string,
+  errors: FieldErrors,
+  strict: boolean,
+): Measurement {
   const record = readObject(value, path, errors);
-  rejectUnknownFields(record, ["value", "unit"], path, errors);
+  if (strict) rejectUnknownFields(record, ["value", "unit"], path, errors);
   return {
     value: readDecimal(record, "value", path, errors) as DecimalString,
     unit: readEnum(record, "unit", path, errors, ["gal_us", "l"]),
@@ -1255,31 +1386,39 @@ function buildCalculationRequest(
   value: unknown,
   path: string,
   errors: FieldErrors,
+  strict: boolean,
 ): CalculationRequest {
   const record = readObject(value, path, errors);
   const rounding = readObject(record.rounding, pathFor(path, "rounding"), errors);
   const comparison = readObject(record.comparison, pathFor(path, "comparison"), errors);
-  rejectUnknownFields(
-    record,
-    [
-      "contract_version",
-      "method_id",
-      "method_version",
-      "method_status",
-      "source_reference",
-      "calculated_at",
-      "template_id",
-      "template_version",
-      "actual_makeup_water",
-      "allowable_makeup_water",
-      "rounding",
-      "comparison",
-    ],
-    path,
-    errors,
-  );
-  rejectUnknownFields(rounding, ["decimal_places", "mode"], pathFor(path, "rounding"), errors);
-  rejectUnknownFields(comparison, ["operator", "tolerance"], pathFor(path, "comparison"), errors);
+  if (strict) {
+    rejectUnknownFields(
+      record,
+      [
+        "contract_version",
+        "method_id",
+        "method_version",
+        "method_status",
+        "source_reference",
+        "calculated_at",
+        "template_id",
+        "template_version",
+        "actual_makeup_water",
+        "allowable_makeup_water",
+        "rounding",
+        "comparison",
+      ],
+      path,
+      errors,
+    );
+    rejectUnknownFields(rounding, ["decimal_places", "mode"], pathFor(path, "rounding"), errors);
+    rejectUnknownFields(
+      comparison,
+      ["operator", "tolerance"],
+      pathFor(path, "comparison"),
+      errors,
+    );
+  }
   return {
     contract_version: readLiteral(
       record,
@@ -1302,11 +1441,13 @@ function buildCalculationRequest(
       record.actual_makeup_water,
       pathFor(path, "actual_makeup_water"),
       errors,
+      strict,
     ),
     allowable_makeup_water: buildMeasurement(
       record.allowable_makeup_water,
       pathFor(path, "allowable_makeup_water"),
       errors,
+      strict,
     ),
     rounding: {
       decimal_places:
@@ -1335,7 +1476,7 @@ function buildCalculationRequest(
 
 export function parseCalculationRequest(value: unknown): CalculationRequest {
   const errors: FieldErrors = {};
-  return finish(errors, buildCalculationRequest(value, "", errors));
+  return finish(errors, buildCalculationRequest(value, "", errors, true));
 }
 
 function buildCalculationResult(
@@ -1393,59 +1534,77 @@ export function parseCalculationResult(value: unknown): CalculationResult {
   return finish(errors, buildCalculationResult(value, "", errors));
 }
 
-export function parsePressureTest(value: unknown): PressureTest {
-  const errors: FieldErrors = {};
-  const record = readObject(value, "", errors);
-  const result: PressureTest = {
+function buildPressureTest(value: unknown, path: string, errors: FieldErrors): PressureTest {
+  const record = readObject(value, path, errors);
+  return {
     contract_version: readLiteral(
       record,
       "contract_version",
-      "",
+      path,
       errors,
       "linecheck.pressure-test.v1",
     ),
-    id: readIdentifier(record, "id", "", errors),
-    test_segment_id: readIdentifier(record, "test_segment_id", "", errors),
-    test_number: readString(record, "test_number", "", errors, { nonblank: true }),
-    test_date: readDate(record, "test_date", "", errors),
-    test_type: readEnum(record, "test_type", "", errors, ["hydrostatic", "pressure"]),
-    pressure_unit: readEnum(record, "pressure_unit", "", errors, ["psi", "kpa", "bar"]),
-    volume_unit: readEnum(record, "volume_unit", "", errors, ["gal_us", "l"]),
-    test_pressure: readDecimal(record, "test_pressure", "", errors, { nullable: true }),
-    test_duration_minutes: readInteger(record, "test_duration_minutes", "", errors, {
+    id: readIdentifier(record, "id", path, errors),
+    test_segment_id: readIdentifier(record, "test_segment_id", path, errors),
+    test_number: readString(record, "test_number", path, errors, { nonblank: true }),
+    test_date: readDate(record, "test_date", path, errors),
+    test_type: readEnum(record, "test_type", path, errors, ["hydrostatic", "pressure"]),
+    pressure_unit: readEnum(record, "pressure_unit", path, errors, ["psi", "kpa", "bar"]),
+    volume_unit: readEnum(record, "volume_unit", path, errors, ["gal_us", "l"]),
+    test_pressure: readDecimal(record, "test_pressure", path, errors, { nullable: true }),
+    test_duration_minutes: readInteger(record, "test_duration_minutes", path, errors, {
       minimum: 1,
       nullable: true,
     }),
-    starting_pressure: readDecimal(record, "starting_pressure", "", errors, { nullable: true }),
-    ending_pressure: readDecimal(record, "ending_pressure", "", errors, { nullable: true }),
-    makeup_water: readDecimal(record, "makeup_water", "", errors, { nullable: true }),
-    allowable_leakage: readDecimal(record, "allowable_leakage", "", errors, { nullable: true }),
-    calculation_method: readString(record, "calculation_method", "", errors, { nonblank: true }),
+    starting_pressure: readDecimal(record, "starting_pressure", path, errors, { nullable: true }),
+    ending_pressure: readDecimal(record, "ending_pressure", path, errors, { nullable: true }),
+    actual_makeup_water: readDecimal(record, "actual_makeup_water", path, errors, {
+      nullable: true,
+    }),
+    allowable_makeup_water: readDecimal(record, "allowable_makeup_water", path, errors, {
+      nullable: true,
+    }),
+    calculation_method: readLiteral(
+      record,
+      "calculation_method",
+      path,
+      errors,
+      "project_specified_allowance@1.0.0",
+    ),
     calculation_inputs_json:
       record.calculation_inputs_json === null
         ? null
         : buildCalculationRequest(
             record.calculation_inputs_json,
-            "calculation_inputs_json",
+            pathFor(path, "calculation_inputs_json"),
             errors,
+            false,
           ),
     calculation_result_json:
       record.calculation_result_json === null
         ? null
-        : buildCalculationResult(record.calculation_result_json, "calculation_result_json", errors),
-    result: readEnum(record, "result", "", errors, ["pending", "pass", "fail"]),
-    notes: readString(record, "notes", "", errors),
-    started_at: readDateTime(record, "started_at", "", errors, true),
-    completed_at: readDateTime(record, "completed_at", "", errors, true),
-    signed_at: readDateTime(record, "signed_at", "", errors, true),
-    locked_at: readDateTime(record, "locked_at", "", errors, true),
-    created_by: readIdentifier(record, "created_by", "", errors),
-    supersedes_test_id: readNullableIdentifier(record, "supersedes_test_id", "", errors),
-    created_at: readDateTime(record, "created_at", "", errors) ?? "",
-    updated_at: readDateTime(record, "updated_at", "", errors) ?? "",
-    revision: readInteger(record, "revision", "", errors, { minimum: 0 }) ?? 0,
+        : buildCalculationResult(
+            record.calculation_result_json,
+            pathFor(path, "calculation_result_json"),
+            errors,
+          ),
+    result: readEnum(record, "result", path, errors, ["pending", "pass", "fail"]),
+    notes: readString(record, "notes", path, errors),
+    started_at: readDateTime(record, "started_at", path, errors, true),
+    completed_at: readDateTime(record, "completed_at", path, errors, true),
+    signed_at: readDateTime(record, "signed_at", path, errors, true),
+    locked_at: readDateTime(record, "locked_at", path, errors, true),
+    created_by: readIdentifier(record, "created_by", path, errors),
+    ...readPredecessor(record, path, errors),
+    created_at: readDateTime(record, "created_at", path, errors) ?? "",
+    updated_at: readDateTime(record, "updated_at", path, errors) ?? "",
+    revision: readInteger(record, "revision", path, errors, { minimum: 0 }) ?? 0,
   };
-  return finish(errors, result);
+}
+
+export function parsePressureTest(value: unknown): PressureTest {
+  const errors: FieldErrors = {};
+  return finish(errors, buildPressureTest(value, "", errors));
 }
 
 function buildProjectUpdateInput(

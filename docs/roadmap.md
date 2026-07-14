@@ -107,6 +107,63 @@ The template system is domain-specific configuration, not a generic form builder
 | R5-05 Portfolio-level reporting | Leadership needs trends across projects, not another field dashboard. | Paid views aggregate only authorized versioned summaries, show source/freshness, handle deletion/retention, and link back to core records; field app remains usable when unavailable. | R5-02, R5-03 | Paid | Future |
 | R5-06 External integration hooks | Projects may need Procore/lab/other-system coordination. | Core exposes generic scoped API/events/export; paid connectors map external IDs idempotently, record provenance/errors, never mutate locked source evidence, and can be disabled without data loss. | R5-01, R5-03 | Core hook; Paid connectors | Future |
 
+## Deferred external brief — MainLine Module 1: Pipe Lay Log
+
+> Sequencing status in this repository: **BLOCKED.** This brief requires MainLine Phase 1
+> alignments and stations. LineCheck does not implement that prerequisite, so no module work
+> may begin here. Preserve the complete brief below for the appropriate MainLine repository.
+
+**MODULE 1 — Pipe Lay Log**
+
+**=====================================================================**
+
+**You are adding a Pipe Lay Log to MainLine. Read CLAUDE.md and ARCHITECTURE.md first — all existing constraints apply (append-only records, derived status, stations are the language, no CAD/GIS, no build step, AGPLv3).**
+
+**Sequencing gate: Requires Phase 1 (alignments + stations). If absent, add this entire brief to docs/ROADMAP.md and stop.**
+
+**Why — and the fence, stated up front because this module lives next to a cliff: This is MATERIAL TRACEABILITY, not pay-quantity tracking. When a manufacturer recalls a resin lot, or a joint fails in year five, the question is "which sticks from that lot are at which stations." That's the product. The moment this module computes installed quantities for payment, it has become the accounting department's spreadsheet — the answer is no. State this fence in CLAUDE.md and in ARCHITECTURE.md's rejected-list ("pay quantities / progress billing"), and do not build daily-quantity summaries, earned-value views, or LF-installed-per-day charts even though the data could produce them. (Stated twice, as required: no pay quantities.)**
+
+**Data model (additive):**
+
+**lay_records — append-only: alignment_id, date, station_from, station_to (decimal + display per the station model), crew_or_foreman (text), pipe_material, pipe_size, depth_of_cover (value, feet, at representative point), bedding_note, photos.**
+
+**lay_record_lots — lay_record_id, manufacturer, lot_or_print_line (text), heat_number (text, nullable — steel). Multiple lots per record is normal (a day's lay spans pallets).**
+
+**Derived: lot → station ranges (the recall query); station → lots (the failure-investigation query). Both must be answerable in one page.**
+
+**UI: (1) Capture: end-of-day phone form — station range, lots (photograph the print line on the pipe; make lot entry photo-plus-text), depth, bedding, photos; offline-queued. (2) Alignment view gains a lay coverage strip: which station ranges have lay records (gaps are visible — a gap is either un-laid or un-logged, both worth seeing). (3) Lot lookup page: enter lot/print-line fragment → station ranges + dates + records. (4) Print-friendly traceability report per alignment (free tier; formatted PDF joins the paid deliverables phase).**
+
+**Definition of done: additive migrations; capture + coverage strip + lot lookup on a phone, offline; demo data spanning three lots across overlapping records; the pay-quantity fence written in both docs; README under two pages.**
+
+## Deferred external brief — MainLine Module 3: Compaction & Density Test Tracking
+
+> Sequencing status in this repository: **BLOCKED.** This brief requires MainLine Phase 1
+> stations and the Phase 3 `joint_tests` reject → repair → re-test chaining pattern. LineCheck
+> implements neither prerequisite, so no module work may begin here. Preserve the complete brief
+> below for the appropriate MainLine repository.
+
+**MODULE 3 — Compaction & Density Test Tracking**
+
+**=====================================================================**
+
+**You are adding Compaction & Density Test Tracking to MainLine. Read CLAUDE.md and ARCHITECTURE.md first — all existing constraints apply.**
+
+**Sequencing gate: Requires Phase 1 (stations) AND the Phase 3 test-chaining pattern (joint_tests with reject → repair → re-test chains). If Phase 3 is absent, add this entire brief to docs/ROADMAP.md and stop — this module deliberately reuses that chaining ADR rather than inventing a second retest model.**
+
+**Why: "Do we have passing density on every lift of every trench section" is the same chase-the-lab misery as cylinder breaks and NDT shots. Tests live in the field tech's notebook and the lab's PDF attachments; failures and retests lose their linkage; closeout becomes archaeology.**
+
+**Data model (additive):**
+
+**compaction_tests — append-only: alignment_id, station (decimal + display), offset, lift_or_depth (text — "Lift 2" or "3.5 ft below SG"; free text because lift conventions vary), test_type (enum: nuclear_gauge, sand_cone, drive_cylinder, other), required_percent (value), result_percent (value), moisture_percent (value, nullable), result (pass / fail — derive from percents where both present, but store the field call since specs have moisture windows and judgment calls), tested_by (text), agency (text), date, report attachment (the lab/tech ticket — nag if absent), retest_of (nullable relation to the failed test, per the Phase 3 chaining pattern).**
+
+**Derived: a station/lift location is UNRESOLVED if its latest test chain ends in fail. The project-level list of unresolved locations is the module's red list.**
+
+**UI: (1) Capture: phone form at the test location — station, lift, numbers, photo of the gauge/ticket; offline-queued. (2) Unresolved dashboard: failed chains without passing retests, oldest first. (3) Alignment view: test coverage joins the strips from Modules 1–2 (lay / restoration / density — the alignment view is becoming the pipeline's X-ray; keep it fast and server-light per the page-weight budget). (4) Print-friendly density log per alignment (free tier; formatted closeout PDF joins the paid deliverables phase).**
+
+**Scope fence: No lab integrations, no proctor curve management (required_percent is entered per test from the spec; storing soil proctor libraries is lab software). If a feature request needs to know the proctor itself, the answer is no.**
+
+**Definition of done: additive migrations; capture + unresolved dashboard + strip on a phone, offline; retest chaining verified end to end (fail → retest → pass clears the location); demo data including one unresolved failure; ARCHITECTURE.md updated, rejected-list gains "lab integration / proctor management"; README under two pages.**
+
 ## Sequencing and release discipline
 
 Phase numbers are dependency order, not calendar promises. Phase 1 may ship only after its safety/integrity dependencies in Phase 0; selected Phase 2 hardening can move forward when required for a responsible MVP release. Phases 3–5 do not justify weakening or delaying the narrow pressure-test workflow. A roadmap row moving horizons or ownership requires the user impact, compatibility effect, and open-source/paid boundary to be reviewed in the same change.
