@@ -43,6 +43,7 @@
 | [`docs/documentation-index.md`](documentation-index.md) | Normative navigation | This authority map and evidence-precedence rule. |
 | [`docs/product-vision.md`](product-vision.md) | Normative + Proposed | DECIDED product intent/design principles; later capability horizons remain PROPOSED. Not evidence of a runnable workflow. |
 | [`docs/mvp-scope.md`](mvp-scope.md) | Normative release target | DECIDED pressure-test cut line. Explicitly does not claim implementation; unresolved release-cut conflicts are tracked in `open-questions.md`. |
+| [`docs/report-field-spec.md`](report-field-spec.md) | Normative release target | DECIDED (2026-07-14) field set the R1-10 print-ready report renders from the frozen signed snapshot: reference-only evidence, signature identity+hash only, GPS suppressed on print. Does not claim implementation. |
 | [`docs/open-source-paid-boundary.md`](open-source-paid-boundary.md) | Normative + Proposed | DECIDED core/paid capability boundary; future sidecar/API/event mechanics are PROPOSED unless repository evidence says otherwise. |
 | [`docs/roadmap.md`](roadmap.md) | Proposed | Dependency/horizon plan. A row is not complete without its acceptance criteria and tests; no roadmap row is a CURRENT feature merely because it is listed. |
 | [`docs/plans/phase-1-plan.md`](plans/phase-1-plan.md) | Proposed | Implementation plan sequencing the roadmap Phase 1 rows (R1-01…R1-13) into reviewable work packages with owners, tests, and required maintainer decisions. Grants no capability by itself. |

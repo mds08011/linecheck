@@ -122,8 +122,9 @@ letters are the workstreams from the `AGENTS.md` repository map.
 - JSON export round-trips the signed v1 source; CSV exports documented tabular
   readings/metadata without formula ambiguity; both identify version/hash and
   append an export audit event.
-- **Gated by Decision 1** (report field spec is `UNKNOWN`). R1-11 production PDF
-  is Post-MVP and explicitly out of the Phase 1 release gate.
+- Field set is fixed by [`report-field-spec.md`](../report-field-spec.md)
+  (Decision 1, resolved). R1-11 production PDF is Post-MVP and explicitly out of
+  the Phase 1 release gate.
 
 ### WP8 — Basic offline draft
 
@@ -155,9 +156,11 @@ never logged; **software never self-authorizes clearance**.
 
 ## Decisions required from the maintainer
 
-1. **Report field specification is `UNKNOWN`** ([`open-questions.md`](../open-questions.md),
-   [`mvp-scope.md`](../mvp-scope.md)) — **blocks WP7 (R1-10).** Accept the exact
-   printed field set before WP7; resolve early so it is not the bottleneck.
+1. **Report field specification — RESOLVED (2026-07-14).** Settled in
+   [`report-field-spec.md`](../report-field-spec.md): the report renders the frozen
+   `SignedTestSnapshot` with reference-only evidence (thumbnails deferred to roadmap
+   R2-12), witness signature as identity + sha256 only, and GPS suppressed on the
+   printed face. WP7 is no longer blocked.
 2. **Auth stance for Phase 1.** The witness needs no account, but who
    authenticates the field user creating records and invoking sign-and-lock?
    No roadmap row covers it. Minimal options: single shared field login, or

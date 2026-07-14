@@ -48,7 +48,7 @@ CSV export and QR/direct-link access are core commitments; they may ship immedia
 - Canonicalization has golden byte/hash vectors and excludes mutable presentation/PDF details; identical semantic input produces identical bytes across supported runtimes.
 - Duplicate offline submissions with the same `mutation_id` return the original result; they do not create duplicate tests, readings, signatures, or audit events.
 - Conflicting completed-record edits require user resolution. Signed or locked evidence is never last-write-wins.
-- The report field specification remains **UNKNOWN** and must be accepted before implementation; see [`open-questions.md`](open-questions.md). Browser printing must be checked at phone and letter/A4 layouts. Production PDF rendering remains explicitly incomplete.
+- The report field specification is **DECIDED** (2026-07-14) in [`report-field-spec.md`](report-field-spec.md): the report deterministically renders the frozen `SignedTestSnapshot` — reference-only evidence (no embedded images in v1), witness signature shown as identity + sha256 only (image never leaves protected storage), and witness/attachment GPS suppressed on the printed face but retained in the record/JSON. Browser printing must be checked at phone and letter/A4 layouts. Production PDF rendering remains explicitly incomplete.
 - One integration test covers the complete happy path and rejects a post-lock edit. One end-to-end path records a failed signed test as valid evidence and starts a separate replacement.
 - All fixtures are marked fictional; secrets, real signatures, `pb_data/`, uploads, and generated reports are absent from source control.
 
