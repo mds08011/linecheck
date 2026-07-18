@@ -1,4 +1,61 @@
-# LineCheck
+# LineCheck — archived
+
+> **This repository is archived and is not maintained.** It is kept public and
+> read-only as reference material. Nothing here is a runnable application, and
+> nothing here should be used as an acceptance record on a live project.
+
+## What LineCheck was
+
+A pre-alpha TypeScript contract/domain scaffold for documenting pipeline
+segment acceptance — pressure tests, witness attestations, supporting
+evidence, and acceptance records on water and wastewater construction
+projects. It reached typed contracts, exact decimal arithmetic, and a green
+quality gate. It never reached a runnable field application: no client, no
+service, no migrations, no storage, no exports.
+
+## Why it is archived
+
+Decided 2026-07 (Levelbook portfolio decision log, "LineCheck supersession").
+LineCheck was an unrunnable off-stack scaffold, while MainLine already models
+linear infrastructure — alignments, stations, and append-only test ledgers
+with derived acceptance. Building the domain on the stack that already runs it
+beats finishing a scaffold that cannot run. A solo maintainer with zero
+external users should converge on what exists rather than widen the surface.
+
+## Where the scope went
+
+Segment acceptance — stationed test segments, pressure and gravity test
+records, flushing, disinfection, bacteriological sampling, and linear
+acceptance sequences — folds into **MainLine** as a future module:
+[MainLine ROADMAP → "Future module: segment testing & acceptance (from
+LineCheck)"](https://github.com/levelbookdev/mainline/blob/main/ROADMAP.md).
+It is not scheduled; it begins when MainLine exits dormancy.
+
+LoopCheck is unaffected: its shipped segment schema slice stays frozen exactly
+as it is, and service cutover stays in LoopCheck permanently. All
+cross-product record migrations are frozen until there are real users.
+
+## What is still worth reading here
+
+Kept deliberately as reference material for the future MainLine module:
+
+- **Typed domain contracts** — [`src/contracts.ts`](src/contracts.ts): v1 DTOs,
+  strict create/update mutation inputs, discriminated sync operations, and
+  field-specific validation errors.
+- **Exact decimal arithmetic** — [`src/domain/`](src/domain/): exact math,
+  explicit unit conversion, and the supplied project-allowance comparison.
+- **Canonicalization helpers** — canonical serialization and SHA-256 hashing,
+  audit-chain helpers, and lifecycle preconditions.
+
+These are the shape of the problem, not an implementation to port. MainLine's
+own hard constraints govern anything built there.
+
+---
+
+## Historical README
+
+Everything below is preserved as written before archival. It describes intent
+and repository state as of 2026-07-12 and is no longer maintained.
 
 > **DECIDED product direction:** LineCheck is an open-source, offline-tolerant field application for documenting pipeline pressure tests, witness attestations, supporting evidence, and acceptance records on water and wastewater construction projects.
 

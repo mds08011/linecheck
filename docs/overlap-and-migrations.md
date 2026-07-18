@@ -1,5 +1,13 @@
 # Overlap and migrations
 
+> **MIGRATIONS FROZEN (2026-07-18).** Record migrations between products are
+> frozen until there are real users. No cross-product import, export, or
+> transfer of records is authorized, planned, or scheduled. The analysis below
+> is preserved as thinking — a record of how the boundaries were reasoned
+> about — not as a plan to execute. LineCheck itself is archived and its scope
+> folded into MainLine as a future module; see the archival notice in
+> [README.md](../README.md).
+
 ## Scope and classification
 
 **[CURRENT]** This is a documentation-only assessment of local sibling
